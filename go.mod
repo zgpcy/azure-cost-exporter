@@ -1,6 +1,6 @@
 module github.com/zgpcy/azure-cost-exporter
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
@@ -25,9 +25,9 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )

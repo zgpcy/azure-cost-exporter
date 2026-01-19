@@ -67,6 +67,7 @@ type Config struct {
 // Load loads configuration from a YAML file and applies environment variable overrides
 func Load(path string) (*Config, error) {
 	// Read YAML file
+	// #nosec G304 -- Config file path is provided by administrator via CLI flag, not user input
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
