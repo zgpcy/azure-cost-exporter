@@ -104,7 +104,7 @@ jobs:
           GOOS=darwin GOARCH=arm64 go build -o azure-cost-exporter-darwin-arm64 ./cmd/exporter
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: binaries
           path: azure-cost-exporter-*
