@@ -1,0 +1,98 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Static analysis
+    - unused        # Check for unused code
+    - gofmt         # Check formatting
+    - goimports     # Check imports
+    - misspell      # Fix spelling errors
+    - gocritic      # Comprehensive linter
+    - revive        # Drop-in replacement for golint
+    - gosec         # Security checker
+    - unconvert     # Remove unnecessary type conversions
+    - unparam       # Unused function parameters
+    - prealloc      # Suggest preallocating slices
+    - nolintlint    # Validate //nolint directives
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow  # Too many false positives
+
+  gofmt:
+    simplify: true
+
+  goimports:
+    local-prefixes: github.com/zgpcy/azure-cost-exporter
+
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G104  # Audit errors not checked (covered by errcheck)
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - hugeParam  # Triggers on large structs passed by value
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+        arguments:
+          - "checkPrivateReceivers"
+          - "sayRepetitiveInsteadOfStutters"
+
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - unparam
+
+    # Exclude known false positives
+    - text: "G404: Use of weak random number generator"
+      linters:
+        - gosec
+
+  # Maximum issues count per one linter. Set to 0 to disable.
+  max-issues-per-linter: 50
+
+  # Maximum count of issues with the same text. Set to 0 to disable.
+  max-same-issues: 3
+
+  # Show only new issues
+  new: false
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  sort-results: true
