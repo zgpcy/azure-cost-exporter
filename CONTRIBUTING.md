@@ -35,7 +35,7 @@ Be respectful, inclusive, and professional in all interactions.
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go 1.23 or later
 - Docker (for integration tests and security scanning)
 - Make
 - Pre-commit hooks (optional but recommended)
