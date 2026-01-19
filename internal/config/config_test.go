@@ -84,10 +84,10 @@ subscriptions:
 
 	// Verify defaults
 	tests := []struct {
-		name     string
-		got      interface{}
-		want     interface{}
-		desc     string
+		name string
+		got  interface{}
+		want interface{}
+		desc string
 	}{
 		{"Currency", cfg.Currency, "€", "default currency"},
 		{"EndDateOffset", cfg.DateRange.EndDateOffset, 1, "default end date offset"},

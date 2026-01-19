@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/zgpcy/azure-cost-exporter/internal/azure"
 	"github.com/zgpcy/azure-cost-exporter/internal/collector"
 	"github.com/zgpcy/azure-cost-exporter/internal/config"
@@ -78,14 +79,14 @@ func main() {
 	logger.Info("Collector registered with Prometheus")
 
 	// Register Go runtime metrics (memory, goroutines, GC stats)
-	if err := prometheus.Register(prometheus.NewGoCollector()); err != nil {
+	if err := prometheus.Register(collectors.NewGoCollector()); err != nil {
 		logger.Warn("Failed to register Go collector", "error", err)
 	} else {
 		logger.Info("Go runtime metrics registered")
 	}
 
 	// Register process metrics (CPU, memory, file descriptors)
-	if err := prometheus.Register(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{})); err != nil {
+	if err := prometheus.Register(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})); err != nil {
 		logger.Warn("Failed to register process collector", "error", err)
 	} else {
 		logger.Info("Process metrics registered")
@@ -93,7 +94,6 @@ func main() {
 
 	// Create context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	// Start background refresh
 	logger.Info("Starting background cost data refresh")
@@ -113,27 +113,28 @@ func main() {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
+	var exitCode int
 	select {
 	case err := <-serverErrors:
 		logger.Error("Server error", "error", err)
-		os.Exit(1)
+		exitCode = 1
 
 	case sig := <-shutdown:
 		logger.Info("Received shutdown signal, starting graceful shutdown", "signal", sig.String())
 
-		// Cancel background refresh
-		cancel()
-
 		// Shutdown server with timeout
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
-		defer shutdownCancel()
 
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			logger.Error("Error during server shutdown", "error", err)
-			// Force shutdown
-			os.Exit(1)
+			exitCode = 1
+		} else {
+			logger.Info("Server stopped gracefully")
 		}
-
-		logger.Info("Server stopped gracefully")
+		shutdownCancel()
 	}
+
+	// Cancel background refresh before exiting
+	cancel()
+	os.Exit(exitCode)
 }

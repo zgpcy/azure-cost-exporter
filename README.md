@@ -92,7 +92,7 @@ subscriptions:
   - id: "bff44dec-916c-4139-b390-43e93fb04593"
     name: "development"
 
-currency: "�"
+currency: "€"
 
 date_range:
   end_date_offset: 0   # 0 = today, 1 = yesterday
@@ -120,7 +120,7 @@ Configuration values can be overridden with environment variables:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `AZURE_COST_SUBSCRIPTIONS` | Comma-separated subscription list: `id1:name1,id2:name2` | From config file |
-| `AZURE_COST_CURRENCY` | Currency symbol for display | `�` |
+| `AZURE_COST_CURRENCY` | Currency symbol for display | `€` |
 | `AZURE_COST_REFRESH_INTERVAL` | Refresh interval in seconds | `3600` |
 | `AZURE_COST_HTTP_PORT` | HTTP server port | `8080` |
 | `AZURE_COST_LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
@@ -195,7 +195,7 @@ Daily cloud cost by provider, subscription, service, and resource type. Designed
 - `service` - Cloud service name (e.g., "Microsoft.Compute", "Amazon S3")
 - `resource_type` - Resource type or meter category
 - `date` - Date in YYYY-MM-DD format
-- `currency` - Currency symbol (e.g., "�")
+- `currency` - Currency symbol (e.g., "€")
 
 **Example**:
 ```
@@ -435,7 +435,7 @@ Common issues:
 
 1. Check exporter status: `curl http://localhost:8080/`
 2. Verify readiness: `curl http://localhost:8080/ready`
-3. Check Prometheus targets: Prometheus UI � Status � Targets
+3. Check Prometheus targets: Prometheus UI -> Status -> Targets
 4. Verify date range settings in config.yaml
 
 ### High memory usage
@@ -496,21 +496,21 @@ AZURE_COST_LOG_LEVEL=debug ./azure-cost-exporter -config config.yaml
 
 ```
 .
-   cmd/
-      exporter/
-          main.go              # Application entry point
-   internal/
-      azure/
-         cost_client.go       # Azure Cost Management API client
-      config/
-         config.go            # Configuration handling
-      collector/
-         cost_collector.go    # Prometheus collector
-      server/
-          server.go            # HTTP server
-   config.yaml                   # Configuration file
-   Dockerfile                    # Container image
-   README.md                     # This file
+ cmd/
+    exporter/
+        main.go              # Application entry point
+ internal/
+    azure/
+       cost_client.go       # Azure Cost Management API client
+    config/
+       config.go            # Configuration handling
+    collector/
+       cost_collector.go    # Prometheus collector
+    server/
+        server.go            # HTTP server
+ config.yaml                   # Configuration file
+ Dockerfile                    # Container image
+ README.md                     # This file
 ```
 
 ## License

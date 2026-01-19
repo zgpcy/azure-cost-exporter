@@ -157,8 +157,8 @@ func TestCollect_WithData(t *testing.T) {
 		records: []provider.CostRecord{
 			{
 				Date:             "2026-01-15",
-				AccountName:     "test-sub",
-				AccountID:   "sub-123",
+				AccountName:      "test-sub",
+				AccountID:        "sub-123",
 				Service:          "Storage",
 				ResourceType:     "microsoft.storage/storageaccounts",
 				ResourceGroup:    "prod-rg",
@@ -174,8 +174,8 @@ func TestCollect_WithData(t *testing.T) {
 			},
 			{
 				Date:             "2026-01-15",
-				AccountName:     "test-sub",
-				AccountID:   "sub-123",
+				AccountName:      "test-sub",
+				AccountID:        "sub-123",
 				Service:          "Virtual Machines",
 				ResourceType:     "microsoft.compute/virtualmachines",
 				ResourceGroup:    "dev-rg",
@@ -284,12 +284,12 @@ func TestRefresh(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
 			{
-				Date:           "2026-01-15",
-				AccountName:   "test",
-				AccountID: "123",
-				Service:        "Storage",
-				Cost:           10.0,
-				Currency:       "$",
+				Date:        "2026-01-15",
+				AccountName: "test",
+				AccountID:   "123",
+				Service:     "Storage",
+				Cost:        10.0,
+				Currency:    "$",
 			},
 		},
 	}
@@ -825,8 +825,8 @@ func TestMetricLabels(t *testing.T) {
 		records: []provider.CostRecord{
 			{
 				Date:             "2026-01-15",
-				AccountName:     "prod-subscription",
-				AccountID:   "sub-abc-123",
+				AccountName:      "prod-subscription",
+				AccountID:        "sub-abc-123",
 				Service:          "Azure Database for PostgreSQL",
 				ResourceType:     "microsoft.dbforpostgresql/flexibleservers",
 				ResourceGroup:    "database-rg",

@@ -1,0 +1,43 @@
+# Pre-commit hooks for Azure Cost Exporter
+# Install: pip install pre-commit
+# Setup: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Secret detection
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom YAML tags
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: ['--branch', 'main', '--branch', 'master']
+
+  # Go specific hooks
+  - repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.1
+    hooks:
+      - id: go-fmt
+      - id: go-vet
+      - id: go-test
+        args: ['-race', '-cover']
+      - id: go-mod-tidy
+
+  # Security scanning
+  - repo: https://github.com/aquasecurity/trivy
+    rev: v0.48.3
+    hooks:
+      - id: trivy-repo
+        args: ['--severity', 'CRITICAL,HIGH']

@@ -1,0 +1,104 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Static analysis
+    - unused        # Check for unused code
+    - gofmt         # Check formatting
+    - misspell      # Fix spelling errors
+    - gocritic      # Comprehensive linter
+    - revive        # Drop-in replacement for golint
+    - gosec         # Security checker
+    - unconvert     # Remove unnecessary type conversions
+    - nolintlint    # Validate //nolint directives
+  disable:
+    - goimports     # Too strict on import ordering
+    - prealloc      # Micro-optimization, not critical
+    - unparam       # Too pedantic
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow  # Too many false positives
+      - fieldalignment  # Micro-optimization for struct memory layout
+
+  gofmt:
+    simplify: true
+
+  goimports:
+    local-prefixes: github.com/zgpcy/azure-cost-exporter
+
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G104  # Audit errors not checked (covered by errcheck)
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - hugeParam  # Triggers on large structs passed by value
+      - unnamedResult  # Allow unnamed returns
+      - rangeValCopy  # Allow range value copies
+      - equalFold  # Minor optimization suggestion
+      - octalLiteral  # File permissions are fine with old-style octals
+      - httpNoBody  # Minor optimization for HTTP requests
+      - preferFprint  # Already handled by suggestion
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: true  # Disabled to allow provider.ProviderType naming
+
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - unparam
+
+    # Exclude known false positives
+    - text: "G404: Use of weak random number generator"
+      linters:
+        - gosec
+
+  # Maximum issues count per one linter. Set to 0 to disable.
+  max-issues-per-linter: 50
+
+  # Maximum count of issues with the same text. Set to 0 to disable.
+  max-same-issues: 3
+
+  # Show only new issues
+  new: false
+
+  # Uniq issues by line
+  uniq-by-line: true
+
+output:
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true

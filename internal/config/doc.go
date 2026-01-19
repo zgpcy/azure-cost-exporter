@@ -5,9 +5,9 @@
 // configuration.
 //
 // Configuration sources (in order of precedence):
-//   1. Environment variables (highest priority)
-//   2. YAML configuration file
-//   3. Default values (lowest priority)
+//  1. Environment variables (highest priority)
+//  2. YAML configuration file
+//  3. Default values (lowest priority)
 //
 // Supported environment variables:
 //   - AZURE_COST_CURRENCY: Currency symbol for cost values

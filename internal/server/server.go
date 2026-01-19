@@ -128,7 +128,9 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"healthy"}`))
+	if _, err := w.Write([]byte(`{"status":"healthy"}`)); err != nil {
+		s.logger.Error("Failed to write health response", "error", err)
+	}
 }
 
 // handleReady handles readiness check requests (returns 200 only when data is loaded)
@@ -137,16 +139,22 @@ func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
 
 	if !s.collector.IsReady() {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte(`{"status":"not ready","message":"waiting for initial data fetch"}`))
+		if _, err := w.Write([]byte(`{"status":"not ready","message":"waiting for initial data fetch"}`)); err != nil {
+			s.logger.Error("Failed to write ready response", "error", err)
+		}
 		return
 	}
 
 	if err := s.collector.LastError(); err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte(fmt.Sprintf(`{"status":"not ready","error":"%s"}`, err.Error())))
+		if _, writeErr := fmt.Fprintf(w, `{"status":"not ready","error":"%s"}`, err.Error()); writeErr != nil {
+			s.logger.Error("Failed to write ready response", "error", writeErr)
+		}
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ready"}`))
+	if _, err := w.Write([]byte(`{"status":"ready"}`)); err != nil {
+		s.logger.Error("Failed to write ready response", "error", err)
+	}
 }

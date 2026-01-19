@@ -60,7 +60,7 @@ type Config struct {
 	RefreshInterval              int            `yaml:"refresh_interval"` // seconds
 	HTTPPort                     int            `yaml:"http_port"`
 	LogLevel                     string         `yaml:"log_level"`
-	APITimeout                   int            `yaml:"api_timeout"` // Azure API timeout in seconds
+	APITimeout                   int            `yaml:"api_timeout"`                     // Azure API timeout in seconds
 	EnableHighCardinalityMetrics *bool          `yaml:"enable_high_cardinality_metrics"` // Enable cloud_cost_daily_by_resource metric (default: true)
 }
 

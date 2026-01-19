@@ -26,14 +26,14 @@ type CostCollector struct {
 	clock         clock.Clock // Time provider for testing
 
 	// Metrics
-	costMetric               *prometheus.Desc
-	costByResourceMetric     *prometheus.Desc // Optional high-cardinality metric
-	upMetric                 *prometheus.Desc
-	scrapeDurationMetric     *prometheus.Desc
-	scrapeErrorsTotal        *prometheus.CounterVec // Proper counter metric
-	lastScrapeTimeMetric     *prometheus.Desc
-	recordCountMetric        *prometheus.Desc
-	buildInfo                *prometheus.GaugeVec // Build version information
+	costMetric           *prometheus.Desc
+	costByResourceMetric *prometheus.Desc // Optional high-cardinality metric
+	upMetric             *prometheus.Desc
+	scrapeDurationMetric *prometheus.Desc
+	scrapeErrorsTotal    *prometheus.CounterVec // Proper counter metric
+	lastScrapeTimeMetric *prometheus.Desc
+	recordCountMetric    *prometheus.Desc
+	buildInfo            *prometheus.GaugeVec // Build version information
 
 	// State
 	mu                 sync.RWMutex

@@ -26,12 +26,12 @@ func testLogger() *logger.Logger {
 
 // mockCloudProvider is a mock implementation for testing
 type mockCloudProvider struct {
-	mu            sync.Mutex
-	records       []provider.CostRecord
-	err           error
-	queryCalls    int
-	providerType  provider.ProviderType
-	accountCount  int
+	mu           sync.Mutex
+	records      []provider.CostRecord
+	err          error
+	queryCalls   int
+	providerType provider.ProviderType
+	accountCount int
 }
 
 func (m *mockCloudProvider) QueryCosts(ctx context.Context) ([]provider.CostRecord, error) {
@@ -451,8 +451,8 @@ func TestMetricsEndpoint(t *testing.T) {
 			{
 				Date:             "2026-01-15",
 				Provider:         "azure",
-				AccountName:     "test-sub",
-				AccountID:   "sub-123",
+				AccountName:      "test-sub",
+				AccountID:        "sub-123",
 				Service:          "Storage",
 				ResourceType:     "microsoft.storage/storageaccounts",
 				ResourceGroup:    "rg-1",

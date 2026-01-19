@@ -30,13 +30,13 @@ type CloudProvider interface {
 // This is a generic structure that works across all cloud providers
 type CostRecord struct {
 	// Common fields across all providers
-	Date         string  // YYYY-MM-DD format
-	Provider     string  // Cloud provider name (azure, aws, gcp)
-	AccountID    string  // Subscription ID (Azure), Account ID (AWS), Project ID (GCP)
-	AccountName  string  // Friendly name for the account
-	Service      string  // Service name (Storage, Compute, etc.)
-	Cost         float64 // Cost amount
-	Currency     string  // Currency symbol
+	Date        string  // YYYY-MM-DD format
+	Provider    string  // Cloud provider name (azure, aws, gcp)
+	AccountID   string  // Subscription ID (Azure), Account ID (AWS), Project ID (GCP)
+	AccountName string  // Friendly name for the account
+	Service     string  // Service name (Storage, Compute, etc.)
+	Cost        float64 // Cost amount
+	Currency    string  // Currency symbol
 
 	// Optional detailed fields (may be empty for some providers)
 	ResourceType     string // Resource type (microsoft.storage/storageaccounts, etc.)

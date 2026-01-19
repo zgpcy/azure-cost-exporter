@@ -604,12 +604,12 @@ func TestParseResponse_AllDimensionsPresent(t *testing.T) {
 	}
 
 	row := []interface{}{
-		100.50,                  // Cost
-		20260115,                // UsageDate
-		"Test Service",          // ServiceName
-		"microsoft.test/type",   // ResourceType
-		"test-rg",               // ResourceGroup
-		"westeurope",            // ResourceLocation
+		100.50,                // Cost
+		20260115,              // UsageDate
+		"Test Service",        // ServiceName
+		"microsoft.test/type", // ResourceType
+		"test-rg",             // ResourceGroup
+		"westeurope",          // ResourceLocation
 		"/subscriptions/sub/resourcegroups/rg/providers/microsoft.test/resources/testresource", // ResourceID
 		"Test Category",    // MeterCategory
 		"Test SubCategory", // MeterSubCategory
@@ -646,8 +646,8 @@ func TestParseResponse_AllDimensionsPresent(t *testing.T) {
 		"ChargeType":       "Usage",
 		"PricingModel":     "Reservation",
 		"Currency":         "€",
-		"AccountName":     "test-subscription",
-		"AccountID":   "test-sub-1",
+		"AccountName":      "test-subscription",
+		"AccountID":        "test-sub-1",
 	}
 
 	// Use reflection-free approach for checking all fields

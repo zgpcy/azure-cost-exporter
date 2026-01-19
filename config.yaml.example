@@ -1,0 +1,59 @@
+subscriptions:
+  - id: "REPLACE_ME"
+    name: "Production"
+  - id: "REPLACE_ME"
+    name: "Development"
+  # Add more subscriptions here as needed
+
+# Currency symbol for cost display (default: €)
+currency: "€"
+
+# Date range configuration
+date_range:
+  end_date_offset: 0 # Days before today (1 = yesterday, 0 = today)
+  days_to_query: 1 # Number of days to include in the query
+
+# Exporter settings
+refresh_interval: 3600  # How often to refresh cost data from Azure (in seconds, default: 3600 = 1 hour)
+http_port: 8080         # HTTP server port for /metrics endpoint
+log_level: "info"       # Log level: debug, info, warn, error
+
+# High cardinality metrics control (optional, default: true)
+# Set to false to disable resource-level metrics in large environments
+# enable_high_cardinality_metrics: true
+
+# Azure API timeout in seconds (optional, default: 30)
+# api_timeout: 30
+
+group_by:
+  enabled: true
+  groups:
+    - type: Dimension
+      name: ServiceName
+      label_name: ServiceName
+    - type: Dimension
+      name: ResourceGroup
+      label_name: ResourceGroup
+    - type: Dimension
+      name: ResourceId
+      label_name: ResourceId
+    - type: Dimension
+      name: MeterCategory
+      label_name: MeterCategory
+    - type: Dimension
+      name: MeterSubCategory
+      label_name: MeterSubCategory
+    - type: Dimension
+      name: ResourceType
+      label_name: ResourceType
+    - type: Dimension
+      name: ResourceLocation
+      label_name: ResourceLocation
+    - type: Dimension
+      name: ChargeType
+      label_name: ChargeType
+    - type: Dimension
+      name: PricingModel
+      label_name: PricingModel
+    # NOTE: Adding ResourceId will significantly increase metric cardinality
+    # (one metric per individual resource like disk, VM, NIC, etc.)
