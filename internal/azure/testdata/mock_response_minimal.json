@@ -1,0 +1,13 @@
+{
+  "properties": {
+    "columns": [
+      {"name": "Cost", "type": "Number"},
+      {"name": "UsageDate", "type": "Number"},
+      {"name": "ServiceName", "type": "String"}
+    ],
+    "rows": [
+      [10.50, 20260115, "Storage"],
+      [25.00, 20260116, "Virtual Machines"]
+    ]
+  }
+}

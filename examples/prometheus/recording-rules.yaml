@@ -1,0 +1,101 @@
+# Prometheus Recording Rules for Azure Cost Exporter
+#
+# These rules create pre-aggregated metrics that:
+# 1. Improve query performance in Grafana
+# 2. Reduce cardinality by aggregating resource-level metrics
+# 3. Provide commonly-used metrics out of the box
+#
+# To use these rules:
+# 1. Save this file to your Prometheus configuration directory
+# 2. Add it to your prometheus.yml:
+#    rule_files:
+#      - "recording-rules.yaml"
+# 3. Reload Prometheus configuration
+
+groups:
+  - name: azure_cost_aggregations
+    interval: 5m
+    rules:
+      # Total daily cost across all subscriptions
+      - record: azure:cost:total_daily
+        expr: sum(cloud_cost_daily{provider="azure"})
+
+      # Daily cost by subscription
+      - record: azure:cost:by_subscription
+        expr: sum by (account_name, account_id) (cloud_cost_daily{provider="azure"})
+
+      # Daily cost by service
+      - record: azure:cost:by_service
+        expr: sum by (service) (cloud_cost_daily{provider="azure"})
+
+      # Daily cost by subscription and service
+      - record: azure:cost:by_subscription_service
+        expr: sum by (account_name, service) (cloud_cost_daily{provider="azure"})
+
+      # Top 10 most expensive services
+      - record: azure:cost:top_services
+        expr: topk(10, sum by (service) (cloud_cost_daily{provider="azure"}))
+
+      # Top 10 most expensive subscriptions
+      - record: azure:cost:top_subscriptions
+        expr: topk(10, sum by (account_name) (cloud_cost_daily{provider="azure"}))
+
+  # Aggregations for high-cardinality resource metrics (if enabled)
+  - name: azure_cost_resource_aggregations
+    interval: 5m
+    rules:
+      # Cost by resource type
+      - record: azure:cost:by_resource_type
+        expr: sum by (resource_type) (cloud_cost_daily_by_resource{provider="azure"})
+
+      # Cost by resource location
+      - record: azure:cost:by_location
+        expr: sum by (resource_location) (cloud_cost_daily_by_resource{provider="azure"})
+
+      # Cost by resource group
+      - record: azure:cost:by_resource_group
+        expr: sum by (resource_group) (cloud_cost_daily_by_resource{provider="azure"})
+
+      # Top 20 most expensive resources
+      - record: azure:cost:top_resources
+        expr: topk(20, cloud_cost_daily_by_resource{provider="azure"})
+
+  # Weekly and monthly cost calculations
+  - name: azure_cost_time_ranges
+    interval: 1h
+    rules:
+      # 7-day cost trend
+      - record: azure:cost:7d_total
+        expr: sum_over_time(azure:cost:total_daily[7d])
+
+      # 30-day cost trend
+      - record: azure:cost:30d_total
+        expr: sum_over_time(azure:cost:total_daily[30d])
+
+      # 7-day average daily cost
+      - record: azure:cost:7d_avg
+        expr: avg_over_time(azure:cost:total_daily[7d])
+
+      # 30-day average daily cost
+      - record: azure:cost:30d_avg
+        expr: avg_over_time(azure:cost:total_daily[30d])
+
+  # Cost rate of change (for anomaly detection)
+  - name: azure_cost_rates
+    interval: 5m
+    rules:
+      # Day-over-day cost change percentage
+      - record: azure:cost:dod_change_percent
+        expr: |
+          (
+            (azure:cost:total_daily - azure:cost:total_daily offset 1d)
+            / azure:cost:total_daily offset 1d
+          ) * 100
+
+      # Week-over-week cost change percentage
+      - record: azure:cost:wow_change_percent
+        expr: |
+          (
+            (azure:cost:7d_total - azure:cost:7d_total offset 7d)
+            / azure:cost:7d_total offset 7d
+          ) * 100

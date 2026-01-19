@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Azure Cost Exporter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0078d4;
+            margin-top: 0;
+        }
+        .info {
+            margin: 20px 0;
+        }
+        .info-item {
+            margin: 10px 0;
+        }
+        .label {
+            font-weight: bold;
+            display: inline-block;
+            width: 180px;
+        }
+        a {
+            color: #0078d4;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.ready {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.not-ready {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Azure Cost Exporter</h1>
+        <p>Prometheus exporter for Azure Cost Management data</p>
+
+        <div class="info">
+            <div class="info-item">
+                <span class="label">Status:</span>
+                <span class="status {{.StatusClass}}">{{.StatusText}}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Last Scrape:</span>
+                <span>{{.LastScrape}}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Cost Records:</span>
+                <span>{{.RecordCount}}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Refresh Interval:</span>
+                <span>{{.RefreshInterval}} seconds</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Subscriptions:</span>
+                <span>{{.SubscriptionCount}}</span>
+            </div>
+        </div>
+
+        <h2>Endpoints</h2>
+        <ul>
+            <li><a href="/metrics">/metrics</a> - Prometheus metrics</li>
+            <li><a href="/health">/health</a> - Health check (liveness probe)</li>
+            <li><a href="/ready">/ready</a> - Readiness check</li>
+        </ul>
+
+        <h2>Metrics</h2>
+        <ul>
+            <li><strong>cloud_cost_daily</strong> - Daily Azure cost by subscription, service, and resource type</li>
+            <li><strong>azure_cost_exporter_up</strong> - Exporter health status (1 = success, 0 = failure)</li>
+        </ul>
+    </div>
+</body>
+</html>

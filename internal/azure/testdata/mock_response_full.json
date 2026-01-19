@@ -1,0 +1,45 @@
+{
+  "properties": {
+    "columns": [
+      {"name": "Cost", "type": "Number"},
+      {"name": "UsageDate", "type": "Number"},
+      {"name": "ServiceName", "type": "String"},
+      {"name": "ResourceGroup", "type": "String"},
+      {"name": "ResourceId", "type": "String"},
+      {"name": "MeterCategory", "type": "String"},
+      {"name": "MeterSubCategory", "type": "String"},
+      {"name": "ResourceType", "type": "String"},
+      {"name": "ResourceLocation", "type": "String"},
+      {"name": "ChargeType", "type": "String"},
+      {"name": "PricingModel", "type": "String"}
+    ],
+    "rows": [
+      [
+        12.34,
+        20260115,
+        "Storage",
+        "production-rg",
+        "/subscriptions/test-sub-1/resourcegroups/production-rg/providers/microsoft.storage/storageaccounts/prodstore123",
+        "Storage",
+        "Premium SSD Managed Disks",
+        "microsoft.storage/storageaccounts",
+        "EU North",
+        "Usage",
+        "OnDemand"
+      ],
+      [
+        45.67,
+        20260115,
+        "Azure Database for PostgreSQL",
+        "vcluster-rg",
+        "/subscriptions/test-sub-1/resourcegroups/vcluster-rg/providers/microsoft.dbforpostgresql/flexibleservers/test-db",
+        "Azure Database for PostgreSQL",
+        "Flexible Server General Purpose Ddsv4 Series Compute",
+        "microsoft.dbforpostgresql/flexibleservers",
+        "EU North",
+        "Usage",
+        "Reservation"
+      ]
+    ]
+  }
+}

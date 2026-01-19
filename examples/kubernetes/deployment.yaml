@@ -1,0 +1,187 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azure-cost-exporter-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    # Azure Cost Exporter Configuration
+    subscriptions:
+      - id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        name: "production"
+      - id: "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+        name: "development"
+
+    # Currency symbol for cost metrics
+    currency: "€"
+
+    # Date range for cost queries
+    date_range:
+      end_date_offset: 1      # Days to offset from today (1 = yesterday's costs)
+      days_to_query: 7        # Number of days to query (7 = last week)
+
+    # Metric cardinality control
+    # Set to false to disable high-cardinality metrics (cloud_cost_daily_by_resource)
+    # and reduce Prometheus memory usage
+    enable_high_cardinality_metrics: true
+
+    # Grouping configuration for detailed cost breakdown
+    group_by:
+      enabled: true
+      groups:
+        - type: "Dimension"
+          name: "ResourceType"
+          label_name: "resource_type"
+        - type: "Dimension"
+          name: "ResourceGroup"
+          label_name: "resource_group"
+        - type: "Dimension"
+          name: "ResourceLocation"
+          label_name: "resource_location"
+        - type: "Dimension"
+          name: "MeterCategory"
+          label_name: "meter_category"
+        - type: "Dimension"
+          name: "MeterSubCategory"
+          label_name: "meter_subcategory"
+
+    # How often to refresh cost data (in seconds)
+    refresh_interval: 3600   # 1 hour
+
+    # HTTP server port
+    http_port: 8080
+
+    # Log level: debug, info, warn, error
+    log_level: "info"
+
+    # Azure API timeout (in seconds)
+    api_timeout: 30
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: azure-cost-exporter
+  namespace: monitoring
+  labels:
+    app: azure-cost-exporter
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Avoid multiple instances querying Azure API simultaneously
+  selector:
+    matchLabels:
+      app: azure-cost-exporter
+  template:
+    metadata:
+      labels:
+        app: azure-cost-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: azure-cost-exporter
+      containers:
+        - name: exporter
+          image: azure-cost-exporter:latest  # Replace with your image
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            # Azure authentication via workload identity or service principal
+            - name: AZURE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: azure-credentials
+                  key: client-id
+            - name: AZURE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: azure-credentials
+                  key: client-secret
+            - name: AZURE_TENANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: azure-credentials
+                  key: tenant-id
+          volumeMounts:
+            - name: config
+              mountPath: /etc/azure-cost-exporter
+              readOnly: true
+          args:
+            - "-config=/etc/azure-cost-exporter/config.yaml"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: azure-cost-exporter-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: azure-cost-exporter
+  namespace: monitoring
+  labels:
+    app: azure-cost-exporter
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+  selector:
+    app: azure-cost-exporter
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: azure-cost-exporter
+  namespace: monitoring
+
+---
+# ServiceMonitor for Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: azure-cost-exporter
+  namespace: monitoring
+  labels:
+    app: azure-cost-exporter
+spec:
+  selector:
+    matchLabels:
+      app: azure-cost-exporter
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 60s
+      scrapeTimeout: 30s

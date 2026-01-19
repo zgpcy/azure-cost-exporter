@@ -1,0 +1,155 @@
+# Prometheus Alert Rules for Azure Cost Exporter
+#
+# These alerts help you monitor:
+# 1. Cost anomalies and spikes
+# 2. Budget thresholds
+# 3. Exporter health and data freshness
+#
+# To use these alerts:
+# 1. Adjust thresholds to match your environment
+# 2. Save this file to your Prometheus configuration directory
+# 3. Add it to your prometheus.yml:
+#    rule_files:
+#      - "cost-alerts.yaml"
+# 4. Configure alert routing in Alertmanager
+
+groups:
+  - name: azure_cost_alerts
+    rules:
+      # Alert when daily cost exceeds threshold
+      - alert: AzureDailyCostHigh
+        expr: azure:cost:total_daily > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: cost-management
+        annotations:
+          summary: "Azure daily cost is high"
+          description: "Current daily Azure cost is €{{ $value | humanize }}, which exceeds the threshold of €1000"
+
+      # Alert when daily cost spike detected (>20% increase)
+      - alert: AzureCostSpike
+        expr: azure:cost:dod_change_percent > 20
+        for: 10m
+        labels:
+          severity: warning
+          component: cost-management
+        annotations:
+          summary: "Azure cost spike detected"
+          description: "Daily cost increased by {{ $value | humanize }}% compared to yesterday"
+
+      # Alert when specific service cost is high
+      - alert: AzureServiceCostHigh
+        expr: azure:cost:by_service > 500
+        for: 5m
+        labels:
+          severity: info
+          component: cost-management
+        annotations:
+          summary: "High cost for Azure service {{ $labels.service }}"
+          description: "Service {{ $labels.service }} daily cost is €{{ $value | humanize }}"
+
+      # Alert when 7-day cost exceeds monthly budget projection
+      - alert: AzureMonthlyBudgetRisk
+        expr: (azure:cost:7d_total / 7) * 30 > 20000
+        for: 1h
+        labels:
+          severity: warning
+          component: cost-management
+        annotations:
+          summary: "Azure monthly budget at risk"
+          description: "Projected monthly cost based on 7-day average: €{{ $value | humanize }} (budget: €20000)"
+
+  - name: azure_cost_exporter_health
+    rules:
+      # Alert when exporter is down
+      - alert: AzureCostExporterDown
+        expr: up{job="azure-cost-exporter",provider="azure"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: cost-exporter
+        annotations:
+          summary: "Azure Cost Exporter is down"
+          description: "The Azure Cost Exporter has been down for more than 5 minutes"
+
+      # Alert when scrape duration is too long
+      - alert: AzureCostScrapeSlow
+        expr: cloud_cost_exporter_scrape_duration_seconds{provider="azure"} > 60
+        for: 10m
+        labels:
+          severity: warning
+          component: cost-exporter
+        annotations:
+          summary: "Azure cost data scrape is slow"
+          description: "Cost data scraping is taking {{ $value | humanize }}s (threshold: 60s)"
+
+      # Alert when scrape errors are occurring
+      - alert: AzureCostScrapeErrors
+        expr: rate(cloud_cost_exporter_scrape_errors_total{provider="azure"}[5m]) > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: cost-exporter
+        annotations:
+          summary: "Azure cost scrape errors detected"
+          description: "Cost scraping errors detected: {{ $value | humanize }} errors/sec"
+
+      # Alert when no cost data has been updated recently
+      - alert: AzureCostDataStale
+        expr: time() - cloud_cost_exporter_last_scrape_timestamp_seconds{provider="azure"} > 7200
+        for: 5m
+        labels:
+          severity: warning
+          component: cost-exporter
+        annotations:
+          summary: "Azure cost data is stale"
+          description: "Cost data hasn't been updated in {{ $value | humanizeDuration }}"
+
+      # Alert when record count drops significantly
+      - alert: AzureCostRecordCountLow
+        expr: |
+          cloud_cost_exporter_records_count{provider="azure"}
+          <
+          (avg_over_time(cloud_cost_exporter_records_count{provider="azure"}[24h]) * 0.5)
+        for: 10m
+        labels:
+          severity: warning
+          component: cost-exporter
+        annotations:
+          summary: "Azure cost record count dropped significantly"
+          description: "Current record count ({{ $value }}) is less than 50% of the 24h average"
+
+  - name: azure_cost_anomalies
+    rules:
+      # Alert on sudden subscription cost increase
+      - alert: AzureSubscriptionCostAnomaly
+        expr: |
+          (
+            azure:cost:by_subscription
+            /
+            (avg_over_time(azure:cost:by_subscription[7d]) offset 1d)
+          ) > 1.5
+        for: 1h
+        labels:
+          severity: warning
+          component: cost-management
+        annotations:
+          summary: "Cost anomaly detected for subscription {{ $labels.account_name }}"
+          description: "Subscription {{ $labels.account_name }} cost is {{ $value | humanize }}x higher than 7-day average"
+
+      # Alert on resource group cost spike
+      - alert: AzureResourceGroupCostSpike
+        expr: |
+          (
+            azure:cost:by_resource_group
+            /
+            (avg_over_time(azure:cost:by_resource_group[7d]) offset 1d)
+          ) > 2
+        for: 30m
+        labels:
+          severity: info
+          component: cost-management
+        annotations:
+          summary: "Cost spike in resource group {{ $labels.resource_group }}"
+          description: "Resource group {{ $labels.resource_group }} cost is {{ $value | humanize }}x higher than 7-day average"

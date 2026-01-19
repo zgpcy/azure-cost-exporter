@@ -1,0 +1,66 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+azure-cost-exporter
+*.test
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.out
+coverage.html
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Configuration files with secrets (keep example files)
+config.yaml
+!config.example.yaml
+
+# Azure credentials
+azure-credentials.yaml
+*.pem
+*.key
+
+# Python (from legacy files)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.venv/
+venv/
+
+# Kubernetes secrets
+*-secret.yaml
+!*-secret.yaml.example
+
+# Temporary files
+*.tmp
+*.log
+
+# Internal review files
+EXPERT_REVIEW.md
