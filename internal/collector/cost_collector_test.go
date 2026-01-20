@@ -77,10 +77,8 @@ func (m *mockCloudProvider) SetError(err error) {
 // TestNewCostCollector tests collector creation
 func TestNewCostCollector(t *testing.T) {
 	mockClient := &mockCloudProvider{}
-	enabledPtr := true
 	cfg := &config.Config{
 		Currency:                     "€",
-		EnableHighCardinalityMetrics: &enabledPtr,
 	}
 
 	collector := NewCostCollector(mockClient, cfg, testLogger())
@@ -105,8 +103,7 @@ func TestNewCostCollector(t *testing.T) {
 // TestDescribe tests the Describe method
 func TestDescribe(t *testing.T) {
 	mockClient := &mockCloudProvider{}
-	enabledPtr := true
-	cfg := &config.Config{EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ch := make(chan *prometheus.Desc, 10)
@@ -120,17 +117,16 @@ func TestDescribe(t *testing.T) {
 		descs = append(descs, desc)
 	}
 
-	// Should have: costMetric, costByResourceMetric, upMetric, scrapeDurationMetric, scrapeErrorsTotal, lastScrapeTimeMetric, recordCountMetric, buildInfo
-	if len(descs) != 8 {
-		t.Errorf("Expected 8 descriptors, got %d", len(descs))
+	// Should have: costMetric, upMetric, scrapeDurationMetric, scrapeErrorsTotal, lastScrapeTimeMetric, recordCountMetric, buildInfo
+	if len(descs) != 7 {
+		t.Errorf("Expected 7 descriptors, got %d", len(descs))
 	}
 }
 
 // TestCollect_NoData tests collection when no data has been fetched yet
 func TestCollect_NoData(t *testing.T) {
 	mockClient := &mockCloudProvider{}
-	enabledPtr := true
-	cfg := &config.Config{EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ch := make(chan prometheus.Metric, 10)
@@ -192,8 +188,7 @@ func TestCollect_WithData(t *testing.T) {
 		},
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	// Trigger refresh to load data
@@ -211,11 +206,11 @@ func TestCollect_WithData(t *testing.T) {
 		metrics = append(metrics, metric)
 	}
 
-	// Should have: 2 high-cardinality (by_resource) + 2 low-cardinality aggregated (by service) + 5 operational metrics
+	// Should have: 2 cost metrics (by service) + 5 operational metrics
 	// (up, scrape_duration, last_scrape_timestamp, records_count, buildInfo)
 	// Note: scrape_errors counter won't export if never incremented
-	if len(metrics) != 9 {
-		t.Errorf("Expected 9 metrics (2 by_resource + 2 aggregated + 5 operational), got %d", len(metrics))
+	if len(metrics) != 7 {
+		t.Errorf("Expected 7 metrics (2 cost + 5 operational), got %d", len(metrics))
 	}
 
 	// Verify collector is ready
@@ -240,8 +235,7 @@ func TestCollect_WithError(t *testing.T) {
 		err: errors.New("Azure API error"),
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
@@ -294,8 +288,7 @@ func TestRefresh(t *testing.T) {
 		},
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
@@ -328,8 +321,7 @@ func TestStartBackgroundRefresh(t *testing.T) {
 		},
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 1, EnableHighCardinalityMetrics: &enabledPtr} // 1 second for fast test
+	cfg := &config.Config{RefreshInterval: 1} // 1 second for fast test
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -374,8 +366,7 @@ func TestStartBackgroundRefresh_ContextCancellation(t *testing.T) {
 		},
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 10, EnableHighCardinalityMetrics: &enabledPtr} // Long interval
+	cfg := &config.Config{RefreshInterval: 10} // Long interval
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -407,8 +398,7 @@ func TestConcurrency_MultipleCollectCalls(t *testing.T) {
 		},
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
@@ -435,10 +425,10 @@ func TestConcurrency_MultipleCollectCalls(t *testing.T) {
 				count++
 			}
 
-			// Should always get 9 metrics (2 by_resource + 2 aggregated + 5 operational)
+			// Should always get 7 metrics (2 cost + 5 operational)
 			// Note: scrape_errors counter won't export if never incremented
-			if count != 9 {
-				t.Errorf("Expected 9 metrics, got %d", count)
+			if count != 7 {
+				t.Errorf("Expected 7 metrics, got %d", count)
 			}
 		}()
 	}
@@ -455,8 +445,7 @@ func TestConcurrency_CollectDuringRefresh(t *testing.T) {
 		queryDuration: 200 * time.Millisecond, // Simulate slow query
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 1, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 1}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -503,8 +492,7 @@ func TestConcurrency_StateMethodsDuringRefresh(t *testing.T) {
 		queryDuration: 100 * time.Millisecond,
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 1, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 1}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -552,8 +540,7 @@ func TestUpMetric_Success(t *testing.T) {
 		},
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
@@ -590,8 +577,7 @@ func TestUpMetric_Failure(t *testing.T) {
 		err: errors.New("API error"),
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
@@ -627,8 +613,7 @@ func TestUpMetric_EmptyRecords(t *testing.T) {
 		records: []provider.CostRecord{}, // Empty but no error
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
@@ -665,8 +650,7 @@ func TestRefresh_ErrorRecovery(t *testing.T) {
 		err: errors.New("temporary error"),
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
@@ -745,8 +729,7 @@ func TestMetricAggregation(t *testing.T) {
 		},
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
@@ -764,13 +747,12 @@ func TestMetricAggregation(t *testing.T) {
 	}
 
 	// Should have:
-	// - 3 high-cardinality metrics (one per resource)
-	// - 2 low-cardinality aggregated metrics (Storage aggregated to 25.0, Compute to 25.0)
+	// - 2 cost metrics (Storage aggregated to 25.0, Compute to 25.0)
 	// - 5 operational metrics (up, scrape_duration, last_scrape_timestamp, records_count, buildInfo)
 	// Note: scrape_errors counter won't export if never incremented
-	// Total: 3 + 2 + 5 = 10 metrics
-	if len(metrics) != 10 {
-		t.Errorf("Expected 10 metrics (3 by_resource + 2 aggregated + 5 operational), got %d", len(metrics))
+	// Total: 2 + 5 = 7 metrics
+	if len(metrics) != 7 {
+		t.Errorf("Expected 7 metrics (2 cost + 5 operational), got %d", len(metrics))
 	}
 
 	// Verify collector state
@@ -801,8 +783,7 @@ func TestMemoryLimits(t *testing.T) {
 		records: excessiveRecords,
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
@@ -819,7 +800,7 @@ func TestMemoryLimits(t *testing.T) {
 	}
 }
 
-// TestMetricLabels tests two-tier metric structure with appropriate cardinality
+// TestMetricLabels tests that the single cost metric is properly exported
 func TestMetricLabels(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
@@ -843,37 +824,27 @@ func TestMetricLabels(t *testing.T) {
 		},
 	}
 
-	enabledPtr := true
-	cfg := &config.Config{RefreshInterval: 3600, EnableHighCardinalityMetrics: &enabledPtr}
+	cfg := &config.Config{RefreshInterval: 3600}
 	collector := NewCostCollector(mockClient, cfg, testLogger())
 
 	ctx := context.Background()
 	collector.refresh(ctx)
 
-	// Two-tier metrics:
-	// - costMetric (low-cardinality): 6 labels (provider, account_name, account_id, service, date, currency)
-	// - costByResourceMetric (high-cardinality): 9 labels (adds resource_type, resource_group, resource_location)
+	// Single metric with dynamic labels based on groupBy configuration
 	ch := make(chan prometheus.Metric, 10)
 	go func() {
 		collector.Collect(ch)
 		close(ch)
 	}()
 
-	lowCardinalityFound := false
-	highCardinalityFound := false
+	metricFound := false
 	for metric := range ch {
 		if metric.Desc().String() == collector.costMetric.String() {
-			lowCardinalityFound = true
-		}
-		if metric.Desc().String() == collector.costByResourceMetric.String() {
-			highCardinalityFound = true
+			metricFound = true
 		}
 	}
 
-	if !lowCardinalityFound {
-		t.Error("Low-cardinality cost metric (cloud_cost_daily) not found")
-	}
-	if !highCardinalityFound {
-		t.Error("High-cardinality cost metric (cloud_cost_daily_by_resource) not found")
+	if !metricFound {
+		t.Error("Cost metric (cloud_cost_daily) not found")
 	}
 }

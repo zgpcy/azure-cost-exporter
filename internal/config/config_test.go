@@ -90,7 +90,7 @@ subscriptions:
 		desc string
 	}{
 		{"Currency", cfg.Currency, "€", "default currency"},
-		{"EndDateOffset", cfg.DateRange.EndDateOffset, 1, "default end date offset"},
+		{"EndDateOffset", *cfg.DateRange.EndDateOffset, 1, "default end date offset"},
 		{"DaysToQuery", cfg.DateRange.DaysToQuery, 7, "default days to query"},
 		{"RefreshInterval", cfg.RefreshInterval, 3600, "default refresh interval"},
 		{"HTTPPort", cfg.HTTPPort, 8080, "default HTTP port"},
