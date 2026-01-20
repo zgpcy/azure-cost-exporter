@@ -91,7 +91,7 @@ type CostCollector struct {
 
 	// Metrics
 	costMetric           *prometheus.Desc
-	costMetricLabelNames []string                       // Dynamic label names from groupBy config
+	costMetricLabelNames []string // Dynamic label names from groupBy config
 	upMetric             *prometheus.Desc
 	scrapeDurationMetric *prometheus.Desc
 	scrapeErrorsTotal    *prometheus.CounterVec // Proper counter metric

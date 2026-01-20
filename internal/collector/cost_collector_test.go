@@ -78,7 +78,7 @@ func (m *mockCloudProvider) SetError(err error) {
 func TestNewCostCollector(t *testing.T) {
 	mockClient := &mockCloudProvider{}
 	cfg := &config.Config{
-		Currency:                     "€",
+		Currency: "€",
 	}
 
 	collector := NewCostCollector(mockClient, cfg, testLogger())
