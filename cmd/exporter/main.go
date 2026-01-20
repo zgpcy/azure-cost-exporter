@@ -43,12 +43,17 @@ func main() {
 		"version", version,
 		"config_path", *configPath)
 
+	endDateOffset := 0
+	if cfg.DateRange.EndDateOffset != nil {
+		endDateOffset = *cfg.DateRange.EndDateOffset
+	}
+
 	logger.Info("Configuration loaded successfully",
 		"subscriptions", len(cfg.Subscriptions),
 		"refresh_interval_seconds", cfg.RefreshInterval,
 		"http_port", cfg.HTTPPort,
 		"days_to_query", cfg.DateRange.DaysToQuery,
-		"end_date_offset", cfg.DateRange.EndDateOffset,
+		"end_date_offset", endDateOffset,
 		"currency", cfg.Currency,
 		"grouping_enabled", cfg.GroupBy.Enabled,
 		"api_timeout_seconds", cfg.APITimeout)

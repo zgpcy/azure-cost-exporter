@@ -47,8 +47,8 @@ type GroupByConfig struct {
 
 // DateRange represents the date range configuration
 type DateRange struct {
-	EndDateOffset int `yaml:"end_date_offset"`
-	DaysToQuery   int `yaml:"days_to_query"`
+	EndDateOffset *int `yaml:"end_date_offset"` // Pointer to distinguish between 0 and unset
+	DaysToQuery   int  `yaml:"days_to_query"`
 }
 
 // Config represents the application configuration
@@ -99,8 +99,10 @@ func applyDefaults(cfg *Config) {
 	if cfg.Currency == "" {
 		cfg.Currency = DefaultCurrency
 	}
-	if cfg.DateRange.EndDateOffset == 0 {
-		cfg.DateRange.EndDateOffset = DefaultEndDateOffset
+	// Only apply default if EndDateOffset is nil (not set), not if it's explicitly 0
+	if cfg.DateRange.EndDateOffset == nil {
+		offset := DefaultEndDateOffset
+		cfg.DateRange.EndDateOffset = &offset
 	}
 	if cfg.DateRange.DaysToQuery == 0 {
 		cfg.DateRange.DaysToQuery = DefaultDaysToQuery
@@ -155,7 +157,7 @@ func applyEnvOverrides(cfg *Config) error {
 		if err != nil {
 			return fmt.Errorf("invalid AZURE_COST_END_DATE_OFFSET: must be an integer, got %q", val)
 		}
-		cfg.DateRange.EndDateOffset = i
+		cfg.DateRange.EndDateOffset = &i
 	}
 
 	// Override days to query
@@ -224,8 +226,8 @@ func validate(cfg *Config) error {
 		return fmt.Errorf("days_to_query must be at least %d", MinDaysToQuery)
 	}
 
-	if cfg.DateRange.EndDateOffset < 0 {
-		return fmt.Errorf("end_date_offset cannot be negative, got %d", cfg.DateRange.EndDateOffset)
+	if cfg.DateRange.EndDateOffset != nil && *cfg.DateRange.EndDateOffset < 0 {
+		return fmt.Errorf("end_date_offset cannot be negative, got %d", *cfg.DateRange.EndDateOffset)
 	}
 
 	// No need to validate relationship between endDateOffset and daysToQuery

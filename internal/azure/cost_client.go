@@ -152,12 +152,22 @@ func (c *Client) queryCostsForSubscriptionInternal(ctx context.Context, sub conf
 	defer cancel()
 
 	// Calculate date range
-	endDate := c.clock.Now().AddDate(0, 0, -c.cfg.DateRange.EndDateOffset)
+	endDateOffset := 0
+	if c.cfg.DateRange.EndDateOffset != nil {
+		endDateOffset = *c.cfg.DateRange.EndDateOffset
+	}
+	endDate := c.clock.Now().AddDate(0, 0, -endDateOffset)
 	startDate := endDate.AddDate(0, 0, -(c.cfg.DateRange.DaysToQuery - 1))
 
 	// Truncate to beginning of day in UTC
 	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
 	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, time.UTC)
+
+	c.logger.Debug("Querying Azure Cost Management API",
+		"subscription", sub.Name,
+		"start_date", startDate.Format("2006-01-02"),
+		"end_date", endDate.Format("2006-01-02"),
+		"current_time", c.clock.Now().Format("2006-01-02 15:04:05 MST"))
 
 	// Build grouping
 	var grouping []*armcostmanagement.QueryGrouping
