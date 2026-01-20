@@ -211,8 +211,8 @@ serviceMonitor:
   # Additional labels for ServiceMonitor (for Prometheus Operator selector)
   additionalLabels: {}
     # prometheus: kube-prometheus
-  # Scrape interval
-  interval: 60s
+  # Scrape interval (15m is recommended for cost metrics since they're daily granularity)
+  interval: 15m
   # Scrape timeout
   scrapeTimeout: 30s
   # Namespace where ServiceMonitor will be created

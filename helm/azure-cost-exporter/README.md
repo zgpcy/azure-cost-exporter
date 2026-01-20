@@ -241,9 +241,11 @@ serviceMonitor:
   enabled: true
   additionalLabels:
     prometheus: kube-prometheus
-  interval: 60s
+  interval: 15m  # 15 minutes recommended for cost metrics (60x less storage than 15s)
   scrapeTimeout: 30s
 ```
+
+> **Note:** Cost metrics are daily granularity and refresh hourly. A 15-minute scrape interval is optimal - it provides sufficient data resolution while reducing Prometheus storage by 60x compared to the default 15-second interval.
 
 ### Manual Prometheus Configuration
 
@@ -252,6 +254,8 @@ Add this to your Prometheus scrape config:
 ```yaml
 scrape_configs:
   - job_name: 'azure-cost-exporter'
+    scrape_interval: 15m  # Recommended for cost metrics
+    scrape_timeout: 30s
     static_configs:
       - targets: ['azure-cost-exporter.monitoring.svc.cluster.local:8080']
 ```
