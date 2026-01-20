@@ -37,18 +37,3 @@ jobs:
         with:
           charts_dir: helm
           skip_existing: true
-
-      - name: Update Artifact Hub metadata
-        run: |
-          cat > helm/azure-cost-exporter/artifacthub-repo.yml <<EOF
-          repositoryID: $(echo ${{ github.repository }} | sed 's/\//-/')
-          owners:
-            - name: ${{ github.repository_owner }}
-              email: ${{ github.repository_owner }}@users.noreply.github.com
-          EOF
-
-          if [ -n "$(git status --porcelain)" ]; then
-            git add helm/azure-cost-exporter/artifacthub-repo.yml
-            git commit -m "Update Artifact Hub metadata"
-            git push
-          fi
