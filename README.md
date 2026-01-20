@@ -2,6 +2,7 @@
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/zgpcy/azure-cost-exporter)](https://go.dev/)
 [![License](https://img.shields.io/github/license/zgpcy/azure-cost-exporter)](LICENSE)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/azure-cost-exporter)](https://artifacthub.io/packages/search?repo=azure-cost-exporter)
 
 A production-ready Prometheus exporter for Azure Cost Management data, providing daily cost metrics with support for multiple subscriptions and flexible grouping dimensions.
 
