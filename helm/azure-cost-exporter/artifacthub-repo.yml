@@ -1,0 +1,6 @@
+# Artifact Hub repository metadata file
+# https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
+repositoryID: zgpcy-azure-cost-exporter
+owners:
+  - name: zgpcy
+    email: zgpcy@users.noreply.github.com

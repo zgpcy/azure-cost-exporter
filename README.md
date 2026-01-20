@@ -79,6 +79,85 @@ go build -o azure-cost-exporter ./cmd/exporter
 ./azure-cost-exporter -config config.yaml
 ```
 
+### Running on Kubernetes with Helm
+
+#### Option 1: Install from Helm Repository (Recommended)
+
+Add the Helm repository and install:
+
+```bash
+# Add the repository
+helm repo add azure-cost-exporter https://zgpcy.github.io/azure-cost-exporter
+helm repo update
+
+# Install the chart
+helm install azure-cost-exporter azure-cost-exporter/azure-cost-exporter \
+  --namespace monitoring \
+  --create-namespace \
+  --set azure.clientId=<your-client-id> \
+  --set azure.clientSecret=<your-client-secret> \
+  --set azure.tenantId=<your-tenant-id> \
+  --set config.subscriptions[0].id=<subscription-id> \
+  --set config.subscriptions[0].name=production
+```
+
+#### Option 2: Install from Local Chart
+
+Clone the repository and deploy:
+
+```bash
+# Install with Helm
+helm install azure-cost-exporter ./helm/azure-cost-exporter \
+  --namespace monitoring \
+  --create-namespace \
+  --set azure.clientId=<your-client-id> \
+  --set azure.clientSecret=<your-client-secret> \
+  --set azure.tenantId=<your-tenant-id> \
+  --set config.subscriptions[0].id=<subscription-id> \
+  --set config.subscriptions[0].name=production
+```
+
+For production deployments, it's recommended to use an existing Kubernetes secret:
+
+```bash
+# Create secret
+kubectl create secret generic azure-credentials \
+  --namespace monitoring \
+  --from-literal=client-id=<your-client-id> \
+  --from-literal=client-secret=<your-client-secret> \
+  --from-literal=tenant-id=<your-tenant-id>
+
+# Install chart using existing secret
+helm install azure-cost-exporter ./helm/azure-cost-exporter \
+  --namespace monitoring \
+  --create-namespace \
+  --set existingSecret=azure-credentials \
+  --set config.subscriptions[0].id=<subscription-id> \
+  --set config.subscriptions[0].name=production
+```
+
+See the [Helm chart documentation](helm/azure-cost-exporter/README.md) for more configuration options.
+
+### Local Development with kind
+
+Test locally using kind (Kubernetes IN Docker):
+
+```bash
+# Quick start - creates cluster, builds image, installs chart
+make kind-test
+
+# Port-forward to access locally
+make kind-port-forward
+
+# View logs
+make kind-logs
+
+# Clean up
+make kind-delete
+```
+
+See [kind testing documentation](examples/kind/README.md) for detailed instructions.
+
 ## Configuration
 
 ### Configuration File
@@ -146,17 +225,62 @@ You can group costs by any of these Azure Cost Management dimensions:
 
 ## Authentication
 
-The exporter uses Azure's `DefaultAzureCredential`, which supports multiple authentication methods in this order:
+The exporter uses Azure's `DefaultAzureCredential`, which supports multiple authentication methods.
 
-1. **Environment Variables** (recommended for containers):
-   ```bash
-   export AZURE_CLIENT_ID="<your-client-id>"
-   export AZURE_CLIENT_SECRET="<your-client-secret>"
-   export AZURE_TENANT_ID="<your-tenant-id>"
-   ```
+### Recommended: Azure Managed Identity
 
-2. **Managed Identity** (recommended for Azure VMs/AKS)
-3. **Azure CLI** (for local development)
+**Most secure option** - No secrets stored in cluster:
+
+#### 1. Azure Workload Identity (AKS)
+Federates Kubernetes ServiceAccount with Azure AD. See [Helm chart README](helm/azure-cost-exporter/README.md#azure-managed-identity-recommended) for setup.
+
+```bash
+helm install azure-cost-exporter ./helm/azure-cost-exporter \
+  --namespace monitoring \
+  --set managedIdentity.enabled=true \
+  --set managedIdentity.type=workload-identity \
+  --set managedIdentity.clientId=<identity-client-id> \
+  --set config.subscriptions[0].id=<subscription-id>
+```
+
+#### 2. User-Assigned Managed Identity (VM/VMSS)
+```bash
+helm install azure-cost-exporter ./helm/azure-cost-exporter \
+  --namespace monitoring \
+  --set managedIdentity.enabled=true \
+  --set managedIdentity.type=user-assigned \
+  --set managedIdentity.clientId=<identity-client-id> \
+  --set config.subscriptions[0].id=<subscription-id>
+```
+
+#### 3. System-Assigned Managed Identity (VM/VMSS)
+```bash
+helm install azure-cost-exporter ./helm/azure-cost-exporter \
+  --namespace monitoring \
+  --set managedIdentity.enabled=true \
+  --set managedIdentity.type=system-assigned \
+  --set config.subscriptions[0].id=<subscription-id>
+```
+
+### Alternative: Service Principal with Secret
+
+Using environment variables (for containers without managed identity):
+
+```bash
+export AZURE_CLIENT_ID="<your-client-id>"
+export AZURE_CLIENT_SECRET="<your-client-secret>"
+export AZURE_TENANT_ID="<your-tenant-id>"
+```
+
+Or via Helm:
+```bash
+helm install azure-cost-exporter ./helm/azure-cost-exporter \
+  --namespace monitoring \
+  --set azure.clientId=<client-id> \
+  --set azure.clientSecret=<client-secret> \
+  --set azure.tenantId=<tenant-id> \
+  --set config.subscriptions[0].id=<subscription-id>
+```
 
 ### Required Azure Permissions
 
@@ -167,7 +291,7 @@ The service principal or managed identity needs:
 ```bash
 # Grant permissions
 az role assignment create \
-  --assignee <service-principal-id> \
+  --assignee <service-principal-or-identity-client-id> \
   --role "Cost Management Reader" \
   --scope "/subscriptions/<subscription-id>"
 ```
