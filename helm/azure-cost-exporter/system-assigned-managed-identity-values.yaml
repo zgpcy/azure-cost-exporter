@@ -15,7 +15,6 @@ config:
   dateRange:
     endDateOffset: 1
     daysToQuery: 7
-  enableHighCardinalityMetrics: false
 
 # Prerequisites:
 # 1. Enable system-assigned identity on VM/VMSS:

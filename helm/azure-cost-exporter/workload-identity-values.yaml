@@ -20,8 +20,6 @@ config:
     endDateOffset: 1
     daysToQuery: 7
 
-  enableHighCardinalityMetrics: false
-
   groupBy:
     enabled: true
     groups:

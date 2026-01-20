@@ -116,11 +116,6 @@ config:
     # Number of days to query (minimum: 1)
     daysToQuery: 7
 
-  # Metric cardinality control
-  # Set to false to disable high-cardinality metrics (cloud_cost_daily_by_resource)
-  # and reduce Prometheus memory usage
-  enableHighCardinalityMetrics: true
-
   # Grouping configuration for detailed cost breakdown
   groupBy:
     enabled: true

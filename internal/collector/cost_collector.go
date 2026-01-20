@@ -2,6 +2,7 @@ package collector
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,6 +19,69 @@ import (
 // At ~200 bytes per record, 100K records = ~20MB
 const MaxRecordsToCache = 100000
 
+// buildMetricLabels builds the label names for the cost metric
+// based on the groupBy configuration
+func buildMetricLabels(cfg *config.Config) []string {
+	// Base labels always present
+	labels := []string{"provider", "account_name", "account_id", "service"}
+
+	// Add dynamic labels from groupBy configuration
+	if cfg.GroupBy.Enabled {
+		for _, group := range cfg.GroupBy.Groups {
+			labels = append(labels, group.LabelName)
+		}
+	}
+
+	// Trailing labels always present
+	labels = append(labels, "date", "currency")
+
+	return labels
+}
+
+// extractLabelValues extracts label values from a CostRecord based on label names
+func extractLabelValues(record provider.CostRecord, labelNames []string) []string {
+	values := make([]string, len(labelNames))
+
+	for i, labelName := range labelNames {
+		switch labelName {
+		case "provider":
+			values[i] = record.Provider
+		case "account_name":
+			values[i] = record.AccountName
+		case "account_id":
+			values[i] = record.AccountID
+		case "service":
+			values[i] = record.Service
+		case "resource_type":
+			values[i] = record.ResourceType
+		case "resource_group":
+			values[i] = record.ResourceGroup
+		case "resource_location":
+			values[i] = record.ResourceLocation
+		case "resource_id":
+			values[i] = record.ResourceID
+		case "resource_name":
+			values[i] = record.ResourceName
+		case "meter_category":
+			values[i] = record.MeterCategory
+		case "meter_subcategory":
+			values[i] = record.MeterSubCategory
+		case "charge_type":
+			values[i] = record.ChargeType
+		case "pricing_model":
+			values[i] = record.PricingModel
+		case "date":
+			values[i] = record.Date
+		case "currency":
+			values[i] = record.Currency
+		default:
+			values[i] = ""
+		}
+	}
+
+	return values
+}
+
 // CostCollector implements prometheus.Collector for cloud cost metrics
 type CostCollector struct {
 	cloudProvider provider.CloudProvider
@@ -27,7 +91,7 @@ type CostCollector struct {
 
 	// Metrics
 	costMetric           *prometheus.Desc
-	costByResourceMetric *prometheus.Desc // Optional high-cardinality metric
+	costMetricLabelNames []string                       // Dynamic label names from groupBy config
 	upMetric             *prometheus.Desc
 	scrapeDurationMetric *prometheus.Desc
 	scrapeErrorsTotal    *prometheus.CounterVec // Proper counter metric
@@ -74,25 +138,22 @@ func NewCostCollector(cloudProvider provider.CloudProvider, cfg *config.Config, 
 		"go_version": versionInfo["go_version"],
 	}).Set(1)
 
+	// Build dynamic label names from groupBy configuration
+	metricLabels := buildMetricLabels(cfg)
+
 	return &CostCollector{
 		cloudProvider: cloudProvider,
 		cfg:           cfg,
 		logger:        log,
 		clock:         clock.RealClock{}, // Use real system time by default
-		// Low-cardinality metric for alerting and general cost tracking
+		// Cost metric with dynamic labels based on groupBy configuration
 		costMetric: prometheus.NewDesc(
 			"cloud_cost_daily",
-			"Daily cloud cost aggregated by service. Use this for alerting and cost tracking.",
-			[]string{"provider", "account_name", "account_id", "service", "date", "currency"},
+			"Daily cloud cost with grouping dimensions. Labels are dynamically generated from groupBy configuration.",
+			metricLabels,
 			nil,
 		),
-		// Higher-cardinality metric for detailed resource analysis
-		costByResourceMetric: prometheus.NewDesc(
-			"cloud_cost_daily_by_resource",
-			"Daily cloud cost by resource type and location. Higher cardinality - use recording rules or limit time ranges.",
-			[]string{"provider", "account_name", "account_id", "service", "resource_type", "resource_group", "resource_location", "date", "currency"},
-			nil,
-		),
+		costMetricLabelNames: metricLabels,
 		upMetric: prometheus.NewDesc(
 			"up",
 			"Was the last cloud cost query successful (1 = success, 0 = failure)",
@@ -125,7 +186,6 @@ func NewCostCollector(cloudProvider provider.CloudProvider, cfg *config.Config, 
 // Describe implements prometheus.Collector
 func (c *CostCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.costMetric
-	ch <- c.costByResourceMetric
 	ch <- c.upMetric
 	ch <- c.scrapeDurationMetric
 	c.scrapeErrorsTotal.Describe(ch) // Describe the counter
@@ -141,61 +201,36 @@ func (c *CostCollector) Collect(ch chan<- prometheus.Metric) {
 
 	providerName := string(c.cloudProvider.Name())
 
-	// Aggregate costs by service for low-cardinality metric
-	type serviceKey struct {
-		Provider    string
-		AccountName string
-		AccountID   string
-		Service     string
-		Date        string
-		Currency    string
-	}
-	serviceCosts := make(map[serviceKey]float64)
+	// Aggregate costs by label values
+	// Key is a string representation of all label values joined together
+	type labelKey string
+	costs := make(map[labelKey]struct {
+		labelValues []string
+		cost        float64
+	})
 
-	// Aggregate and export both metrics
+	// Aggregate costs for all records
 	for _, record := range c.lastRecords {
-		// Aggregate for low-cardinality metric
-		key := serviceKey{
-			Provider:    record.Provider,
-			AccountName: record.AccountName,
-			AccountID:   record.AccountID,
-			Service:     record.Service,
-			Date:        record.Date,
-			Currency:    record.Currency,
-		}
-		serviceCosts[key] += record.Cost
+		// Extract label values dynamically based on configured label names
+		labelValues := extractLabelValues(record, c.costMetricLabelNames)
 
-		// Export high-cardinality metric (by resource) only if enabled
-		if c.cfg.EnableHighCardinalityMetrics != nil && *c.cfg.EnableHighCardinalityMetrics {
-			ch <- prometheus.MustNewConstMetric(
-				c.costByResourceMetric,
-				prometheus.GaugeValue,
-				record.Cost,
-				record.Provider,
-				record.AccountName,
-				record.AccountID,
-				record.Service,
-				record.ResourceType,
-				record.ResourceGroup,
-				record.ResourceLocation,
-				record.Date,
-				record.Currency,
-			)
-		}
+		// Create unique key from label values
+		key := labelKey(strings.Join(labelValues, "|"))
+
+		// Aggregate costs with identical label values
+		existing := costs[key]
+		existing.labelValues = labelValues
+		existing.cost += record.Cost
+		costs[key] = existing
 	}
 
-	// Export aggregated low-cardinality metrics
-	for key, cost := range serviceCosts {
+	// Export aggregated cost metrics
+	for _, data := range costs {
 		ch <- prometheus.MustNewConstMetric(
 			c.costMetric,
 			prometheus.GaugeValue,
-			cost,
-			key.Provider,
-			key.AccountName,
-			key.AccountID,
-			key.Service,
-			key.Date,
-			key.Currency,
+			data.cost,
+			data.labelValues...,
 		)
 	}
 

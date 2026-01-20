@@ -371,6 +371,7 @@ func (c *Client) parseResponse(result armcostmanagement.QueryResult, sub config.
 	// Build column index map
 	columnMap := buildColumnMap(result.Properties.Columns)
 
+
 	// Verify required columns exist
 	costIdx, hasCost := columnMap["Cost"]
 	dateIdx, hasDate := columnMap["UsageDate"]

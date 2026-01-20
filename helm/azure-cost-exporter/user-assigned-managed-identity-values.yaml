@@ -16,7 +16,6 @@ config:
   dateRange:
     endDateOffset: 1
     daysToQuery: 7
-  enableHighCardinalityMetrics: false
 
 # Prerequisites:
 # 1. Create user-assigned managed identity:

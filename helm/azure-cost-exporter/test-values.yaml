@@ -24,9 +24,6 @@ config:
     endDateOffset: 1
     daysToQuery: 7  # Must be greater than endDateOffset
 
-  # Disable high-cardinality metrics to reduce memory usage in kind
-  enableHighCardinalityMetrics: false
-
   groupBy:
     enabled: false  # Disable grouping for simpler testing
 

@@ -64,3 +64,7 @@ venv/
 
 # Internal review files
 EXPERT_REVIEW.md
+azure-cost-exporter-linux
+azure-cost-exporter
+*.test
+helm/azure-cost-exporter/real-test-values.yaml

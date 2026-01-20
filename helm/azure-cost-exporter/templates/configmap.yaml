@@ -21,9 +21,6 @@ data:
       end_date_offset: {{ .Values.config.dateRange.endDateOffset }}
       days_to_query: {{ .Values.config.dateRange.daysToQuery }}
 
-    # Metric cardinality control
-    enable_high_cardinality_metrics: {{ .Values.config.enableHighCardinalityMetrics }}
-
     # Grouping configuration for detailed cost breakdown
     {{- if .Values.config.groupBy.enabled }}
     group_by:

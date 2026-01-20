@@ -53,15 +53,14 @@ type DateRange struct {
 
 // Config represents the application configuration
 type Config struct {
-	Subscriptions                []Subscription `yaml:"subscriptions"`
-	Currency                     string         `yaml:"currency"`
-	DateRange                    DateRange      `yaml:"date_range"`
-	GroupBy                      GroupByConfig  `yaml:"group_by"`
-	RefreshInterval              int            `yaml:"refresh_interval"` // seconds
-	HTTPPort                     int            `yaml:"http_port"`
-	LogLevel                     string         `yaml:"log_level"`
-	APITimeout                   int            `yaml:"api_timeout"`                     // Azure API timeout in seconds
-	EnableHighCardinalityMetrics *bool          `yaml:"enable_high_cardinality_metrics"` // Enable cloud_cost_daily_by_resource metric (default: true)
+	Subscriptions   []Subscription `yaml:"subscriptions"`
+	Currency        string         `yaml:"currency"`
+	DateRange       DateRange      `yaml:"date_range"`
+	GroupBy         GroupByConfig  `yaml:"group_by"`
+	RefreshInterval int            `yaml:"refresh_interval"` // seconds
+	HTTPPort        int            `yaml:"http_port"`
+	LogLevel        string         `yaml:"log_level"`
+	APITimeout      int            `yaml:"api_timeout"` // Azure API timeout in seconds
 }
 
 // Load loads configuration from a YAML file and applies environment variable overrides
@@ -117,12 +116,6 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.APITimeout == 0 {
 		cfg.APITimeout = DefaultAPITimeout
-	}
-	// Default: high-cardinality metrics enabled for backward compatibility
-	// Users can disable them by setting enable_high_cardinality_metrics: false
-	if cfg.EnableHighCardinalityMetrics == nil {
-		enabled := true
-		cfg.EnableHighCardinalityMetrics = &enabled
 	}
 }
 
@@ -198,12 +191,6 @@ func applyEnvOverrides(cfg *Config) error {
 		}
 	}
 
-	// Override high-cardinality metrics setting
-	if val := os.Getenv("AZURE_COST_ENABLE_HIGH_CARDINALITY_METRICS"); val != "" {
-		enabled := strings.ToLower(val) == "true" || val == "1"
-		cfg.EnableHighCardinalityMetrics = &enabled
-	}
-
 	return nil
 }
 
@@ -241,11 +228,12 @@ func validate(cfg *Config) error {
 		return fmt.Errorf("end_date_offset cannot be negative, got %d", cfg.DateRange.EndDateOffset)
 	}
 
-	// Ensure date range makes sense (can't query dates that haven't happened yet)
-	if cfg.DateRange.EndDateOffset >= cfg.DateRange.DaysToQuery {
-		return fmt.Errorf("end_date_offset (%d) must be less than days_to_query (%d)",
-			cfg.DateRange.EndDateOffset, cfg.DateRange.DaysToQuery)
-	}
+	// No need to validate relationship between endDateOffset and daysToQuery
+	// Any combination is valid since we're always querying historical data
+	// Examples:
+	//   offset=1, days=1: query yesterday only
+	//   offset=1, days=7: query last 7 days ending yesterday
+	//   offset=7, days=1: query 7 days ago only
 
 	if cfg.HTTPPort < MinPort || cfg.HTTPPort > MaxPort {
 		return fmt.Errorf("http_port must be between %d and %d", MinPort, MaxPort)

@@ -207,7 +207,6 @@ See [system-assigned-managed-identity-values.yaml](system-assigned-managed-ident
 | `config.dateRange.daysToQuery` | Number of days to query | `7` |
 | `config.refreshInterval` | How often to refresh cost data (seconds) | `3600` |
 | `config.logLevel` | Log level (debug, info, warn, error) | `"info"` |
-| `config.enableHighCardinalityMetrics` | Enable resource-level metrics | `true` |
 | `serviceMonitor.enabled` | Enable Prometheus Operator ServiceMonitor | `false` |
 | `resources.limits.cpu` | CPU limit | `500m` |
 | `resources.limits.memory` | Memory limit | `512Mi` |
@@ -281,7 +280,7 @@ curl http://localhost:8080/metrics
 
 1. **Pod is not ready**: Check if Azure credentials are correct and subscriptions exist
 2. **No metrics**: Verify Azure Cost Management data is available (usually 1-day delay)
-3. **High memory usage**: Disable high-cardinality metrics by setting `config.enableHighCardinalityMetrics: false`
+3. **High memory usage**: Reduce memory usage by disabling groupBy or reducing the number of grouping dimensions
 
 ## Examples
 

@@ -13,8 +13,8 @@ A production-ready Prometheus exporter for Azure Cost Management data, providing
 - **Multi-Cloud Ready**: Unified `cloud_cost_daily` metric with `provider` label for Azure, AWS, GCP, and more
 - **Daily Cost Breakdown**: Exposes costs as time-series data with daily granularity
 - **Multi-Subscription Support**: Query costs across multiple Azure subscriptions
-- **Flexible Grouping**: Group costs by ServiceName, ResourceType, MeterCategory, and other dimensions
-- **Cardinality Control**: Toggle high-cardinality metrics to optimize Prometheus memory usage
+- **Flexible Grouping**: Group costs by resource type, resource group, meter category, and other dimensions
+- **Dynamic Labels**: Metric labels are automatically generated based on your groupBy configuration
 - **Structured Logging**: JSON-formatted logs with configurable levels (debug, info, warn, error)
 - **Background Refresh**: Periodically queries Azure API to minimize rate limiting
 - **Production Ready**:
@@ -186,11 +186,14 @@ group_by:
   enabled: true
   groups:
     - type: Dimension
-      name: ServiceName
-      label_name: ServiceName
-    - type: Dimension
       name: ResourceType
-      label_name: ResourceType
+      label_name: resource_type
+    - type: Dimension
+      name: ResourceGroup
+      label_name: resource_group
+    - type: Dimension
+      name: MeterCategory
+      label_name: meter_category
 ```
 
 ### Environment Variables
@@ -206,23 +209,27 @@ Configuration values can be overridden with environment variables:
 | `AZURE_COST_LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
 | `AZURE_COST_END_DATE_OFFSET` | Days before today for end date | `0` |
 | `AZURE_COST_DAYS_TO_QUERY` | Number of days to query | `7` |
-| `AZURE_COST_ENABLE_HIGH_CARDINALITY_METRICS` | Enable resource-level metrics (`true`/`false`) | `true` |
 
 ### Available Grouping Dimensions
 
-You can group costs by any of these Azure Cost Management dimensions:
+Configure grouping dimensions to break down costs. Each dimension you add becomes a label in the `cloud_cost_daily` metric:
 
-- `ServiceName` - Azure service (e.g., Microsoft.Compute)
-- `ResourceType` - Resource type (e.g., virtualMachines)
-- `ResourceGroup` - Resource group name
-- `ResourceLocation` - Azure region
-- `MeterCategory` - Meter category
-- `MeterSubCategory` - Meter subcategory
-- `SubscriptionId` - Subscription ID
-- `ChargeType` - Usage, Purchase, Refund, etc.
-- `PricingModel` - OnDemand, Reservation, Spot, SavingsPlan
+| Azure Dimension Name | Recommended Label Name | Description |
+|---------------------|------------------------|-------------|
+| `ServiceName` | `service_name` | Azure service identifier |
+| `ResourceType` | `resource_type` | Resource type (e.g., microsoft.compute/virtualmachines) |
+| `ResourceGroup` | `resource_group` | Resource group name |
+| `ResourceLocation` | `resource_location` | Azure region |
+| `ResourceId` | `resource_id` | Full resource identifier (high cardinality!) |
+| `MeterCategory` | `meter_category` | Meter category |
+| `MeterSubCategory` | `meter_subcategory` | Meter subcategory |
+| `ChargeType` | `charge_type` | Usage, Purchase, Refund, etc. |
+| `PricingModel` | `pricing_model` | OnDemand, Reservation, Spot, SavingsPlan |
 
-**Note**: Azure allows up to 2 grouping dimensions per query.
+**Important Notes**:
+- Use **snake_case** for `label_name` (not PascalCase)
+- Adding many dimensions (especially `ResourceId`) significantly increases metric cardinality
+- Base labels (`provider`, `account_name`, `account_id`, `service`, `date`, `currency`) are always included
 
 ## Authentication
 
@@ -310,21 +317,29 @@ az role assignment create \
 
 ### `cloud_cost_daily`
 
-Daily cloud cost by provider, subscription, service, and resource type. Designed for multi-cloud cost monitoring (Azure, AWS, GCP, Cloudflare, etc.).
+Daily cloud cost with dynamic labels based on your groupBy configuration. Designed for multi-cloud cost monitoring (Azure, AWS, GCP, Cloudflare, etc.).
 
 **Type**: Gauge
-**Labels**:
-- `provider` - Cloud provider (e.g., "azure", "aws", "gcp", "cloudflare")
-- `subscription` - Subscription/account name from config
-- `subscription_id` - Subscription/account ID
-- `service` - Cloud service name (e.g., "Microsoft.Compute", "Amazon S3")
-- `resource_type` - Resource type or meter category
+
+**Base Labels** (always present):
+- `provider` - Cloud provider (e.g., "azure", "aws", "gcp")
+- `account_name` - Subscription/account name from config
+- `account_id` - Subscription/account ID
+- `service` - Cloud service name (e.g., "Azure DNS", "Virtual Machines")
 - `date` - Date in YYYY-MM-DD format
 - `currency` - Currency symbol (e.g., "€")
 
-**Example**:
+**Dynamic Labels** (added based on groupBy config):
+- Any dimensions you configure (e.g., `resource_type`, `resource_group`, `meter_category`)
+
+**Example with grouping**:
 ```
-cloud_cost_daily{provider="azure",subscription="production",subscription_id="31193c31-7631-4120-990b-dfb31478f7da",service="Microsoft.Compute",resource_type="Virtual Machines",date="2026-01-16",currency="€"} 45.67
+cloud_cost_daily{provider="azure",account_name="production",account_id="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",service="Azure DNS",resource_type="microsoft.network/dnszones",resource_group="production-rg",resource_location="westeurope",date="2026-01-19",currency="€"} 0.016
+```
+
+**Example without grouping**:
+```
+cloud_cost_daily{provider="azure",account_name="production",account_id="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",service="Azure DNS",date="2026-01-19",currency="€"} 0.114
 ```
 
 ### `azure_cost_exporter_up`
@@ -477,9 +492,9 @@ sum(cloud_cost_daily{date="2026-01-16"})
 sum by (provider) (cloud_cost_daily{date="2026-01-16"})
 ```
 
-### Azure cost by subscription
+### Azure cost by account
 ```promql
-sum by (subscription) (cloud_cost_daily{provider="azure",date="2026-01-16"})
+sum by (account_name) (cloud_cost_daily{provider="azure",date="2026-01-16"})
 ```
 
 ### Cost by service (all clouds)
@@ -565,7 +580,9 @@ Common issues:
 
 ### High memory usage
 
-Reduce `days_to_query` or disable some grouping dimensions.
+1. Reduce `days_to_query` in your config
+2. Remove high-cardinality dimensions (especially `ResourceId`) from groupBy
+3. Disable groupBy entirely by setting `group_by.enabled: false`
 
 ## Development
 
