@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "azure-cost-exporter.fullname" . }}
+  labels:
+    {{- include "azure-cost-exporter.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    # Azure Cost Exporter Configuration
+    subscriptions:
+    {{- range .Values.config.subscriptions }}
+      - id: {{ .id | quote }}
+        name: {{ .name | quote }}
+    {{- end }}
+
+    # Currency symbol for cost metrics
+    currency: {{ .Values.config.currency | quote }}
+
+    # Date range for cost queries
+    date_range:
+      end_date_offset: {{ .Values.config.dateRange.endDateOffset }}
+      days_to_query: {{ .Values.config.dateRange.daysToQuery }}
+
+    # Metric cardinality control
+    enable_high_cardinality_metrics: {{ .Values.config.enableHighCardinalityMetrics }}
+
+    # Grouping configuration for detailed cost breakdown
+    {{- if .Values.config.groupBy.enabled }}
+    group_by:
+      enabled: {{ .Values.config.groupBy.enabled }}
+      groups:
+      {{- range .Values.config.groupBy.groups }}
+        - type: {{ .type | quote }}
+          name: {{ .name | quote }}
+          label_name: {{ .labelName | quote }}
+      {{- end }}
+    {{- else }}
+    group_by:
+      enabled: false
+    {{- end }}
+
+    # How often to refresh cost data (in seconds)
+    refresh_interval: {{ .Values.config.refreshInterval }}
+
+    # HTTP server port
+    http_port: {{ .Values.config.httpPort }}
+
+    # Log level: debug, info, warn, error
+    log_level: {{ .Values.config.logLevel | quote }}
+
+    # Azure API timeout (in seconds)
+    api_timeout: {{ .Values.config.apiTimeout }}

@@ -1,0 +1,229 @@
+# Default values for azure-cost-exporter
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of replicas (should be 1 to avoid duplicate Azure API queries)
+replicaCount: 1
+
+image:
+  repository: ghcr.io/zgpcy/azure-cost-exporter
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "main"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  # For Azure Workload Identity:
+  # annotations:
+  #   azure.workload.identity/client-id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+podLabels: {}
+  # For Azure Workload Identity:
+  # azure.workload.identity/use: "true"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Node labels for pod assignment
+nodeSelector: {}
+
+# Tolerations for pod assignment
+tolerations: []
+
+# Affinity for pod assignment
+affinity: {}
+
+# Azure Cost Exporter Configuration
+config:
+  # Azure subscriptions to monitor
+  # You MUST provide at least one subscription
+  subscriptions: []
+    # - id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    #   name: "production"
+    # - id: "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+    #   name: "development"
+
+  # Currency symbol for cost metrics (default: €)
+  currency: "€"
+
+  # Date range for cost queries
+  dateRange:
+    # Days to offset from today (0 = today, 1 = yesterday)
+    # Azure Cost Management data is typically available with 1-day delay
+    endDateOffset: 1
+    # Number of days to query (minimum: 1)
+    daysToQuery: 7
+
+  # Metric cardinality control
+  # Set to false to disable high-cardinality metrics (cloud_cost_daily_by_resource)
+  # and reduce Prometheus memory usage
+  enableHighCardinalityMetrics: true
+
+  # Grouping configuration for detailed cost breakdown
+  groupBy:
+    enabled: true
+    groups:
+      - type: "Dimension"
+        name: "ResourceType"
+        labelName: "resource_type"
+      - type: "Dimension"
+        name: "ResourceGroup"
+        labelName: "resource_group"
+      - type: "Dimension"
+        name: "ResourceLocation"
+        labelName: "resource_location"
+      - type: "Dimension"
+        name: "MeterCategory"
+        labelName: "meter_category"
+      - type: "Dimension"
+        name: "MeterSubCategory"
+        labelName: "meter_subcategory"
+
+  # How often to refresh cost data (in seconds)
+  # Minimum: 60 seconds
+  refreshInterval: 3600  # 1 hour
+
+  # HTTP server port
+  httpPort: 8080
+
+  # Log level: debug, info, warn, error
+  logLevel: "info"
+
+  # Azure API timeout (in seconds)
+  # Maximum: 300 seconds
+  apiTimeout: 30
+
+# Azure Authentication Configuration
+# Choose ONE of the following methods:
+
+# ============================================================================
+# Method 1: Azure Managed Identity (RECOMMENDED - Most Secure)
+# ============================================================================
+# Use Azure Managed Identity or Workload Identity for authentication
+# No secrets are stored in the cluster
+managedIdentity:
+  # Enable Managed Identity authentication
+  enabled: false
+
+  # Type of Managed Identity:
+  # - "workload-identity": Azure Workload Identity (recommended for AKS)
+  #     Federates Kubernetes ServiceAccount with Azure AD
+  #     Requires: AKS with Workload Identity enabled
+  # - "user-assigned": User-Assigned Managed Identity
+  #     Uses a specific managed identity
+  #     Requires: VM/VMSS with user-assigned identity attached
+  # - "system-assigned": System-Assigned Managed Identity
+  #     Uses the VM/VMSS system identity
+  #     Requires: VM/VMSS with system-assigned identity enabled
+  type: "workload-identity"
+
+  # Azure Managed Identity Client ID
+  # Required for: workload-identity, user-assigned
+  # Not used for: system-assigned
+  # Example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  clientId: ""
+
+# ============================================================================
+# Method 2: Azure Service Principal with Secret (Credentials)
+# ============================================================================
+# Use Service Principal credentials stored in Kubernetes Secret
+# Only used when managedIdentity.enabled=false
+
+# Option 2a: Use existing secret (recommended)
+# Create a secret with keys: client-id, client-secret, tenant-id
+existingSecret: ""
+
+# Option 2b: Provide credentials directly (NOT recommended for production)
+# These will be stored in a Kubernetes secret
+azure:
+  # Azure Service Principal Client ID
+  clientId: ""
+  # Azure Service Principal Client Secret
+  clientSecret: ""
+  # Azure Tenant ID
+  tenantId: ""
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  # Additional labels for ServiceMonitor (for Prometheus Operator selector)
+  additionalLabels: {}
+    # prometheus: kube-prometheus
+  # Scrape interval
+  interval: 60s
+  # Scrape timeout
+  scrapeTimeout: 30s
+  # Namespace where ServiceMonitor will be created
+  # If empty, uses the same namespace as the release
+  namespace: ""
+  # Relabelings to apply to samples before ingestion
+  relabelings: []
+  # MetricRelabelings to apply to samples before ingestion
+  metricRelabelings: []
+
+# Strategy for deployment updates
+strategy:
+  # Use Recreate to avoid multiple instances querying Azure API simultaneously
+  type: Recreate

@@ -1,0 +1,34 @@
+# Example values for User-Assigned Managed Identity
+# Use when running on Azure VM/VMSS with multiple identities
+
+managedIdentity:
+  enabled: true
+  type: "user-assigned"
+  # REQUIRED: Your user-assigned managed identity client ID
+  clientId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+config:
+  subscriptions:
+    - id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      name: "production"
+
+  currency: "€"
+  dateRange:
+    endDateOffset: 1
+    daysToQuery: 7
+  enableHighCardinalityMetrics: false
+
+# Prerequisites:
+# 1. Create user-assigned managed identity:
+#    az identity create -g <rg> -n azure-cost-exporter-identity
+#
+# 2. Attach identity to VM/VMSS:
+#    az vm identity assign -g <rg> -n <vm-name> --identities <identity-id>
+#    # or for VMSS:
+#    az vmss identity assign -g <rg> -n <vmss-name> --identities <identity-id>
+#
+# 3. Assign Cost Management Reader role:
+#    az role assignment create \
+#      --assignee <identity-client-id> \
+#      --role "Cost Management Reader" \
+#      --scope "/subscriptions/<subscription-id>"

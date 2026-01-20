@@ -1,0 +1,68 @@
+# Test values for local kind testing
+# These are minimal values for testing the chart locally
+
+image:
+  repository: azure-cost-exporter
+  pullPolicy: Never  # Use locally loaded image
+  tag: "latest"
+
+# Mock Azure credentials (these won't work but satisfy validation)
+azure:
+  clientId: "00000000-0000-0000-0000-000000000000"
+  clientSecret: "mock-secret-for-testing"
+  tenantId: "00000000-0000-0000-0000-000000000000"
+
+config:
+  # Mock subscription for testing
+  subscriptions:
+    - id: "00000000-0000-0000-0000-000000000000"
+      name: "test-subscription"
+
+  currency: "$"
+
+  dateRange:
+    endDateOffset: 1
+    daysToQuery: 7  # Must be greater than endDateOffset
+
+  # Disable high-cardinality metrics to reduce memory usage in kind
+  enableHighCardinalityMetrics: false
+
+  groupBy:
+    enabled: false  # Disable grouping for simpler testing
+
+  refreshInterval: 3600
+  httpPort: 8080
+  logLevel: "debug"  # More verbose for testing
+  apiTimeout: 30
+
+# Reduced resources for local testing
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+# Disable ServiceMonitor for kind (Prometheus Operator not installed)
+serviceMonitor:
+  enabled: false
+
+# Faster probes for testing
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3

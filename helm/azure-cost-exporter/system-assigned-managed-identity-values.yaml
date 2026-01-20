@@ -1,0 +1,33 @@
+# Example values for System-Assigned Managed Identity
+# Simplest method - uses the VM/VMSS system identity
+
+managedIdentity:
+  enabled: true
+  type: "system-assigned"
+  # No clientId needed for system-assigned identity
+
+config:
+  subscriptions:
+    - id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      name: "production"
+
+  currency: "€"
+  dateRange:
+    endDateOffset: 1
+    daysToQuery: 7
+  enableHighCardinalityMetrics: false
+
+# Prerequisites:
+# 1. Enable system-assigned identity on VM/VMSS:
+#    az vm identity assign -g <rg> -n <vm-name>
+#    # or for VMSS:
+#    az vmss identity assign -g <rg> -n <vmss-name>
+#
+# 2. Get the system identity principal ID:
+#    az vm identity show -g <rg> -n <vm-name> --query principalId -o tsv
+#
+# 3. Assign Cost Management Reader role:
+#    az role assignment create \
+#      --assignee <principal-id> \
+#      --role "Cost Management Reader" \
+#      --scope "/subscriptions/<subscription-id>"

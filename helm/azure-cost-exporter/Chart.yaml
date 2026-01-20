@@ -1,0 +1,20 @@
+apiVersion: v2
+name: azure-cost-exporter
+description: Prometheus exporter for Azure Cost Management API - Monitor and track Azure spending
+type: application
+version: 0.1.0
+appVersion: "main"
+keywords:
+  - azure
+  - cost
+  - prometheus
+  - exporter
+  - monitoring
+  - finops
+maintainers:
+  - name: zgpcy
+    url: https://github.com/zgpcy
+home: https://github.com/zgpcy/azure-cost-exporter
+sources:
+  - https://github.com/zgpcy/azure-cost-exporter
+icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/prometheus/icon/color/prometheus-icon-color.svg

@@ -1,0 +1,58 @@
+# Example values for Azure Workload Identity (recommended for AKS)
+# This is the most secure method - no secrets stored in cluster
+
+managedIdentity:
+  enabled: true
+  type: "workload-identity"
+  # REQUIRED: Your Azure Managed Identity Client ID
+  clientId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+config:
+  subscriptions:
+    - id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      name: "production"
+    - id: "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+      name: "development"
+
+  currency: "€"
+
+  dateRange:
+    endDateOffset: 1
+    daysToQuery: 7
+
+  enableHighCardinalityMetrics: false
+
+  groupBy:
+    enabled: true
+    groups:
+      - type: "Dimension"
+        name: "ResourceType"
+        labelName: "resource_type"
+
+# Prerequisites:
+# 1. AKS cluster with Workload Identity enabled:
+#    az aks update -g <rg> -n <cluster> --enable-workload-identity --enable-oidc-issuer
+#
+# 2. Create Managed Identity:
+#    az identity create -g <rg> -n azure-cost-exporter-identity
+#
+# 3. Assign Cost Management Reader role to each subscription:
+#    az role assignment create \
+#      --assignee <identity-client-id> \
+#      --role "Cost Management Reader" \
+#      --scope "/subscriptions/<subscription-id>"
+#
+# 4. Create federated credential (link K8s ServiceAccount to Azure Identity):
+#    az identity federated-credential create \
+#      --name azure-cost-exporter-fed-cred \
+#      --identity-name azure-cost-exporter-identity \
+#      --resource-group <rg> \
+#      --issuer $(az aks show -g <rg> -n <cluster> --query "oidcIssuerProfile.issuerUrl" -o tsv) \
+#      --subject system:serviceaccount:monitoring:azure-cost-exporter \
+#      --audience api://AzureADTokenExchange
+#
+# 5. Install chart:
+#    helm install azure-cost-exporter ./helm/azure-cost-exporter \
+#      --namespace monitoring \
+#      --create-namespace \
+#      -f workload-identity-values.yaml
