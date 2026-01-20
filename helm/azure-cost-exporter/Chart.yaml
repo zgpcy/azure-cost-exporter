@@ -2,8 +2,8 @@ apiVersion: v2
 name: azure-cost-exporter
 description: Prometheus exporter for Azure Cost Management API - Monitor and track Azure spending
 type: application
-version: 0.1.0
-appVersion: "main"
+version: 1.0.1
+appVersion: "v1.0.1"
 keywords:
   - azure
   - cost
