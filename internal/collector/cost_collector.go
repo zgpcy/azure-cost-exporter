@@ -33,7 +33,7 @@ func buildMetricLabels(cfg *config.Config) []string {
 	}
 
 	// Trailing labels always present
-	labels = append(labels, "date", "currency")
+	labels = append(labels, "currency")
 
 	return labels
 }
@@ -70,8 +70,6 @@ func extractLabelValues(record provider.CostRecord, labelNames []string) []strin
 			values[i] = record.ChargeType
 		case "pricing_model":
 			values[i] = record.PricingModel
-		case "date":
-			values[i] = record.Date
 		case "currency":
 			values[i] = record.Currency
 		default:

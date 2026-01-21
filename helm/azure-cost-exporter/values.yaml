@@ -111,10 +111,12 @@ config:
   # Date range for cost queries
   dateRange:
     # Days to offset from today (0 = today, 1 = yesterday)
-    # Azure Cost Management data is typically available with 1-day delay
-    endDateOffset: 1
+    # RECOMMENDED: 0 for time-series tracking (queries today's costs at each scrape)
+    # Prometheus naturally builds historical trends as data accumulates
+    endDateOffset: 0
     # Number of days to query (minimum: 1)
-    daysToQuery: 7
+    # RECOMMENDED: 1 for time-series tracking (queries only today)
+    daysToQuery: 1
 
   # Grouping configuration for detailed cost breakdown
   groupBy:

@@ -18,8 +18,8 @@ const (
 
 	// Default values
 	DefaultCurrency        = "€"
-	DefaultEndDateOffset   = 1
-	DefaultDaysToQuery     = 7
+	DefaultEndDateOffset   = 0    // Query today's data (time-series model)
+	DefaultDaysToQuery     = 1    // Query only today (time-series model)
 	DefaultRefreshInterval = 3600 // 1 hour in seconds
 	DefaultHTTPPort        = 8080
 	DefaultLogLevel        = "info"

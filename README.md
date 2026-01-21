@@ -11,7 +11,7 @@ A production-ready Prometheus exporter for Azure Cost Management data, providing
 ## Features
 
 - **Multi-Cloud Ready**: Unified `cloud_cost_daily` metric with `provider` label for Azure, AWS, GCP, and more
-- **Daily Cost Breakdown**: Exposes costs as time-series data with daily granularity
+- **Time-Series Cost Tracking**: Queries current day's costs at each scrape - Prometheus naturally builds historical trends
 - **Multi-Subscription Support**: Query costs across multiple Azure subscriptions
 - **Flexible Grouping**: Group costs by resource type, resource group, meter category, and other dimensions
 - **Dynamic Labels**: Metric labels are automatically generated based on your groupBy configuration
@@ -175,8 +175,8 @@ subscriptions:
 currency: "€"
 
 date_range:
-  end_date_offset: 0   # 0 = today, 1 = yesterday
-  days_to_query: 7     # Number of days to fetch
+  end_date_offset: 0   # 0 = today, 1 = yesterday (recommended: 0 for time-series)
+  days_to_query: 1     # Query only today (recommended: 1 for time-series tracking)
 
 refresh_interval: 3600  # Refresh data every hour
 http_port: 8080
@@ -321,12 +321,13 @@ Daily cloud cost with dynamic labels based on your groupBy configuration. Design
 
 **Type**: Gauge
 
+**How it works**: The exporter queries today's cost data at each scrape. Prometheus stores this as a time-series, naturally building historical cost trends over days/weeks/months.
+
 **Base Labels** (always present):
 - `provider` - Cloud provider (e.g., "azure", "aws", "gcp")
 - `account_name` - Subscription/account name from config
 - `account_id` - Subscription/account ID
 - `service` - Cloud service name (e.g., "Azure DNS", "Virtual Machines")
-- `date` - Date in YYYY-MM-DD format
 - `currency` - Currency symbol (e.g., "€")
 
 **Dynamic Labels** (added based on groupBy config):
@@ -334,12 +335,12 @@ Daily cloud cost with dynamic labels based on your groupBy configuration. Design
 
 **Example with grouping**:
 ```
-cloud_cost_daily{provider="azure",account_name="production",account_id="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",service="Azure DNS",resource_type="microsoft.network/dnszones",resource_group="production-rg",resource_location="westeurope",date="2026-01-19",currency="€"} 0.016
+cloud_cost_daily{provider="azure",account_name="production",account_id="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",service="Azure DNS",resource_type="microsoft.network/dnszones",resource_group="production-rg",resource_location="westeurope",currency="€"} 0.016
 ```
 
 **Example without grouping**:
 ```
-cloud_cost_daily{provider="azure",account_name="production",account_id="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",service="Azure DNS",date="2026-01-19",currency="€"} 0.114
+cloud_cost_daily{provider="azure",account_name="production",account_id="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",service="Azure DNS",currency="€"} 0.114
 ```
 
 ### `azure_cost_exporter_up`
@@ -482,78 +483,106 @@ spec:
 
 ## Example PromQL Queries
 
-### Total cost today (all clouds)
+### Current total cost (all clouds)
 ```promql
-sum(cloud_cost_daily{date="2026-01-16"})
+sum(cloud_cost_daily)
 ```
 
 ### Cost by provider
 ```promql
-sum by (provider) (cloud_cost_daily{date="2026-01-16"})
+sum by (provider) (cloud_cost_daily)
 ```
 
 ### Azure cost by account
 ```promql
-sum by (account_name) (cloud_cost_daily{provider="azure",date="2026-01-16"})
+sum by (account_name) (cloud_cost_daily{provider="azure"})
 ```
 
 ### Cost by service (all clouds)
 ```promql
-sum by (service, provider) (cloud_cost_daily{date="2026-01-16"})
+sum by (service, provider) (cloud_cost_daily)
 ```
 
-### Azure-only costs
+### Azure-only current costs
 ```promql
-sum(cloud_cost_daily{provider="azure",date="2026-01-16"})
+sum(cloud_cost_daily{provider="azure"})
 ```
 
 ### 7-day cost trend
 ```promql
-sum(cloud_cost_daily{date=~"2026-01-(10|11|12|13|14|15|16)"})
+sum(cloud_cost_daily) [7d]
 ```
 
-### Daily cost spike detection (Azure)
+### Cost over last 24 hours
+```promql
+sum(cloud_cost_daily[24h])
+```
+
+### Daily cost spike detection (Azure) - cost > $100
 ```promql
 cloud_cost_daily{provider="azure"} > 100
 ```
 
-### Compare today vs yesterday
+### Cost rate of change (today vs yesterday)
 ```promql
-sum(cloud_cost_daily{date="2026-01-16"}) - sum(cloud_cost_daily{date="2026-01-15"})
+delta(sum(cloud_cost_daily)[1d])
 ```
 
 ### Compare Azure vs other clouds (when you have multiple providers)
 ```promql
-sum by (provider) (cloud_cost_daily{date="2026-01-16"})
+sum by (provider) (cloud_cost_daily)
+```
+
+### Cost by meter_category (stacked in Grafana)
+```promql
+sum by (meter_category) (cloud_cost_daily)
 ```
 
 ## Grafana Dashboard
 
 Example Grafana dashboard panels:
 
-**Multi-Cloud Cost Overview:**
+**Multi-Cloud Cost Overview (Time Series):**
 ```json
 {
   "targets": [
     {
-      "expr": "sum by (date, provider) (cloud_cost_daily)",
-      "legendFormat": "{{provider}} - {{date}}"
+      "expr": "sum by (provider) (cloud_cost_daily)",
+      "legendFormat": "{{provider}}"
     }
   ],
-  "title": "Daily Cloud Costs by Provider"
+  "title": "Cloud Costs by Provider",
+  "type": "timeseries"
 }
 ```
 
-**Azure-Specific Cost Breakdown:**
+**Azure Cost Breakdown by Service (Stacked):**
 ```json
 {
   "targets": [
     {
-      "expr": "sum by (date, service) (cloud_cost_daily{provider=\"azure\"})",
-      "legendFormat": "{{service}} - {{date}}"
+      "expr": "sum by (service) (cloud_cost_daily{provider=\"azure\"})",
+      "legendFormat": "{{service}}"
     }
   ],
-  "title": "Azure Daily Costs by Service"
+  "title": "Azure Costs by Service",
+  "type": "timeseries",
+  "stack": "normal"
+}
+```
+
+**Cost by Meter Category (Stacked - for your use case):**
+```json
+{
+  "targets": [
+    {
+      "expr": "sum by (meter_category) (cloud_cost_daily)",
+      "legendFormat": "{{meter_category}}"
+    }
+  ],
+  "title": "Costs by Meter Category",
+  "type": "timeseries",
+  "stack": "normal"
 }
 ```
 
