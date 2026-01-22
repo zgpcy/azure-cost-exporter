@@ -111,12 +111,11 @@ config:
   # Date range for cost queries
   dateRange:
     # Days to offset from today (0 = today, 1 = yesterday)
-    # RECOMMENDED: 0 for time-series tracking (queries today's costs at each scrape)
-    # Prometheus naturally builds historical trends as data accumulates
+    # REQUIRED: 0 for dual-metric model (queries today + yesterday)
     endDateOffset: 0
     # Number of days to query (minimum: 1)
-    # RECOMMENDED: 1 for time-series tracking (queries only today)
-    daysToQuery: 1
+    # REQUIRED: 2 for dual-metric model (today for live metric, yesterday for historical)
+    daysToQuery: 2
 
   # Grouping configuration for detailed cost breakdown
   groupBy:
@@ -140,7 +139,8 @@ config:
 
   # How often to refresh cost data (in seconds)
   # Minimum: 60 seconds
-  refreshInterval: 3600  # 1 hour
+  # RECOMMENDED: 1800 (30 minutes) for live cost updates
+  refreshInterval: 1800  # 30 minutes
 
   # HTTP server port
   httpPort: 8080

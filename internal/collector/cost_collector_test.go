@@ -117,9 +117,9 @@ func TestDescribe(t *testing.T) {
 		descs = append(descs, desc)
 	}
 
-	// Should have: costMetric, upMetric, scrapeDurationMetric, scrapeErrorsTotal, lastScrapeTimeMetric, recordCountMetric, buildInfo
-	if len(descs) != 7 {
-		t.Errorf("Expected 7 descriptors, got %d", len(descs))
+	// Should have: costMetric, completedDailyCostMetric, upMetric, scrapeDurationMetric, scrapeErrorsTotal, lastScrapeTimeMetric, recordCountMetric, buildInfo
+	if len(descs) != 8 {
+		t.Errorf("Expected 8 descriptors, got %d", len(descs))
 	}
 }
 
@@ -152,7 +152,7 @@ func TestCollect_WithData(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
 			{
-				Date:             "2026-01-15",
+				Date:             time.Now().Format("2006-01-02"),
 				AccountName:      "test-sub",
 				AccountID:        "sub-123",
 				Service:          "Storage",
@@ -169,7 +169,7 @@ func TestCollect_WithData(t *testing.T) {
 				Currency:         "€",
 			},
 			{
-				Date:             "2026-01-15",
+				Date:             time.Now().Format("2006-01-02"),
 				AccountName:      "test-sub",
 				AccountID:        "sub-123",
 				Service:          "Virtual Machines",
@@ -278,7 +278,7 @@ func TestRefresh(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
 			{
-				Date:        "2026-01-15",
+				Date:        time.Now().Format("2006-01-02"),
 				AccountName: "test",
 				AccountID:   "123",
 				Service:     "Storage",
@@ -317,7 +317,7 @@ func TestRefresh(t *testing.T) {
 func TestStartBackgroundRefresh(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 		},
 	}
 
@@ -362,7 +362,7 @@ func TestStartBackgroundRefresh(t *testing.T) {
 func TestStartBackgroundRefresh_ContextCancellation(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 		},
 	}
 
@@ -393,8 +393,8 @@ func TestStartBackgroundRefresh_ContextCancellation(t *testing.T) {
 func TestConcurrency_MultipleCollectCalls(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Compute", Cost: 20.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Compute", Cost: 20.0, Currency: "$"},
 		},
 	}
 
@@ -440,7 +440,7 @@ func TestConcurrency_MultipleCollectCalls(t *testing.T) {
 func TestConcurrency_CollectDuringRefresh(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 		},
 		queryDuration: 200 * time.Millisecond, // Simulate slow query
 	}
@@ -487,7 +487,7 @@ func TestConcurrency_CollectDuringRefresh(t *testing.T) {
 func TestConcurrency_StateMethodsDuringRefresh(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 		},
 		queryDuration: 100 * time.Millisecond,
 	}
@@ -536,7 +536,7 @@ func TestConcurrency_StateMethodsDuringRefresh(t *testing.T) {
 func TestUpMetric_Success(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 		},
 	}
 
@@ -668,7 +668,7 @@ func TestRefresh_ErrorRecovery(t *testing.T) {
 	// Fix the error and add data
 	mockClient.SetError(nil)
 	mockClient.SetRecords([]provider.CostRecord{
-		{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+		{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 	})
 
 	// Second refresh succeeds
@@ -687,11 +687,12 @@ func TestRefresh_ErrorRecovery(t *testing.T) {
 
 // TestMetricAggregation tests that low-cardinality metrics properly aggregate by service
 func TestMetricAggregation(t *testing.T) {
+	today := time.Now().Format("2006-01-02")
 	mockClient := &mockCloudProvider{
 		providerType: provider.ProviderAzure,
 		records: []provider.CostRecord{
 			{
-				Date:             "2026-01-15",
+				Date:             today,
 				Provider:         string(provider.ProviderAzure),
 				AccountName:      "test-sub",
 				AccountID:        "sub-123",
@@ -703,7 +704,7 @@ func TestMetricAggregation(t *testing.T) {
 				Currency:         "€",
 			},
 			{
-				Date:             "2026-01-15",
+				Date:             today,
 				Provider:         string(provider.ProviderAzure),
 				AccountName:      "test-sub",
 				AccountID:        "sub-123",
@@ -715,7 +716,7 @@ func TestMetricAggregation(t *testing.T) {
 				Currency:         "€",
 			},
 			{
-				Date:             "2026-01-15",
+				Date:             today,
 				Provider:         string(provider.ProviderAzure),
 				AccountName:      "test-sub",
 				AccountID:        "sub-123",
@@ -770,7 +771,7 @@ func TestMemoryLimits(t *testing.T) {
 	excessiveRecords := make([]provider.CostRecord, MaxRecordsToCache+5000)
 	for i := 0; i < len(excessiveRecords); i++ {
 		excessiveRecords[i] = provider.CostRecord{
-			Date:        "2026-01-15",
+			Date:        time.Now().Format("2006-01-02"),
 			AccountName: "test",
 			AccountID:   "123",
 			Service:     "Storage",
@@ -805,7 +806,7 @@ func TestMetricLabels(t *testing.T) {
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
 			{
-				Date:             "2026-01-15",
+				Date:             time.Now().Format("2006-01-02"),
 				AccountName:      "prod-subscription",
 				AccountID:        "sub-abc-123",
 				Service:          "Azure Database for PostgreSQL",

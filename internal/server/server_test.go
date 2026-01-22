@@ -192,7 +192,7 @@ func TestHandleReady_Ready(t *testing.T) {
 	cfg := &config.Config{HTTPPort: 8080, RefreshInterval: 3600}
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 		},
 	}
 	collector := collector.NewCostCollector(mockClient, cfg, testLogger())
@@ -348,8 +348,8 @@ func TestHandleIndex_Ready(t *testing.T) {
 	}
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Compute", Cost: 20.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Compute", Cost: 20.0, Currency: "$"},
 		},
 	}
 	collector := collector.NewCostCollector(mockClient, cfg, testLogger())
@@ -403,7 +403,7 @@ func TestHandleIndex_LastScrapeTime(t *testing.T) {
 	cfg := &config.Config{HTTPPort: 8080, RefreshInterval: 3600}
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 		},
 	}
 	collector := collector.NewCostCollector(mockClient, cfg, testLogger())
@@ -449,7 +449,7 @@ func TestMetricsEndpoint(t *testing.T) {
 		accountCount: 1,
 		records: []provider.CostRecord{
 			{
-				Date:             "2026-01-15",
+				Date:             time.Now().Format("2006-01-02"),
 				Provider:         "azure",
 				AccountName:      "test-sub",
 				AccountID:        "sub-123",
@@ -597,7 +597,7 @@ func TestConcurrency_MultipleRequests(t *testing.T) {
 	}
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 		},
 	}
 	collector := collector.NewCostCollector(mockClient, cfg, testLogger())
@@ -662,7 +662,7 @@ func TestHandleReady_StateTransitions(t *testing.T) {
 	cfg := &config.Config{HTTPPort: 8080, RefreshInterval: 1} // 1 second for fast refresh
 	mockClient := &mockCloudProvider{
 		records: []provider.CostRecord{
-			{Date: "2026-01-15", AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
+			{Date: time.Now().Format("2006-01-02"), AccountName: "test", AccountID: "123", Service: "Storage", Cost: 10.0, Currency: "$"},
 		},
 	}
 	collector := collector.NewCostCollector(mockClient, cfg, testLogger())

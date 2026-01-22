@@ -70,6 +70,8 @@ func extractLabelValues(record provider.CostRecord, labelNames []string) []strin
 			values[i] = record.ChargeType
 		case "pricing_model":
 			values[i] = record.PricingModel
+		case "date":
+			values[i] = record.Date
 		case "currency":
 			values[i] = record.Currency
 		default:
@@ -88,23 +90,27 @@ type CostCollector struct {
 	clock         clock.Clock // Time provider for testing
 
 	// Metrics
-	costMetric           *prometheus.Desc
-	costMetricLabelNames []string // Dynamic label names from groupBy config
-	upMetric             *prometheus.Desc
-	scrapeDurationMetric *prometheus.Desc
-	scrapeErrorsTotal    *prometheus.CounterVec // Proper counter metric
-	lastScrapeTimeMetric *prometheus.Desc
-	recordCountMetric    *prometheus.Desc
-	buildInfo            *prometheus.GaugeVec // Build version information
+	costMetric                *prometheus.Desc
+	costMetricLabelNames      []string // Dynamic label names from groupBy config
+	completedDailyCostMetric  *prometheus.Desc
+	completedCostMetricLabels []string // Label names with 'date' added
+	upMetric                  *prometheus.Desc
+	scrapeDurationMetric      *prometheus.Desc
+	scrapeErrorsTotal         *prometheus.CounterVec // Proper counter metric
+	lastScrapeTimeMetric      *prometheus.Desc
+	recordCountMetric         *prometheus.Desc
+	buildInfo                 *prometheus.GaugeVec // Build version information
 
 	// State
-	mu                 sync.RWMutex
-	lastRecords        []provider.CostRecord
-	lastError          error
-	lastScrape         time.Time
-	lastScrapeDuration time.Duration
-	refreshStarted     atomic.Bool // Prevent multiple refresh goroutines
-	isReady            bool
+	mu                  sync.RWMutex
+	lastRecords         []provider.CostRecord // Today's live data
+	completedDayRecords []provider.CostRecord // Yesterday's finalized data
+	lastCompletedDay    string                // Last date we queried for completed data (YYYY-MM-DD)
+	lastError           error
+	lastScrape          time.Time
+	lastScrapeDuration  time.Duration
+	refreshStarted      atomic.Bool // Prevent multiple refresh goroutines
+	isReady             bool
 }
 
 // NewCostCollector creates a new CostCollector
@@ -139,19 +145,31 @@ func NewCostCollector(cloudProvider provider.CloudProvider, cfg *config.Config, 
 	// Build dynamic label names from groupBy configuration
 	metricLabels := buildMetricLabels(cfg)
 
+	// Build labels for completed daily metric (includes 'date')
+	completedDailyLabels := append([]string{}, metricLabels...)
+	completedDailyLabels = append(completedDailyLabels, "date")
+
 	return &CostCollector{
 		cloudProvider: cloudProvider,
 		cfg:           cfg,
 		logger:        log,
 		clock:         clock.RealClock{}, // Use real system time by default
-		// Cost metric with dynamic labels based on groupBy configuration
+		// Cost metric with dynamic labels based on groupBy configuration (TODAY ONLY)
 		costMetric: prometheus.NewDesc(
 			"cloud_cost_daily",
-			"Daily cloud cost with grouping dimensions. Labels are dynamically generated from groupBy configuration.",
+			"Current day's cloud cost (live updates). Resets at midnight. For historical data, use cloud_cost_completed_daily.",
 			metricLabels,
 			nil,
 		),
 		costMetricLabelNames: metricLabels,
+		// Completed daily cost metric (HISTORICAL with date label)
+		completedDailyCostMetric: prometheus.NewDesc(
+			"cloud_cost_completed_daily",
+			"Completed daily cloud costs with date label. Query for historical multi-day aggregations.",
+			completedDailyLabels,
+			nil,
+		),
+		completedCostMetricLabels: completedDailyLabels,
 		upMetric: prometheus.NewDesc(
 			"up",
 			"Was the last cloud cost query successful (1 = success, 0 = failure)",
@@ -184,6 +202,7 @@ func NewCostCollector(cloudProvider provider.CloudProvider, cfg *config.Config, 
 // Describe implements prometheus.Collector
 func (c *CostCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.costMetric
+	ch <- c.completedDailyCostMetric
 	ch <- c.upMetric
 	ch <- c.scrapeDurationMetric
 	c.scrapeErrorsTotal.Describe(ch) // Describe the counter
@@ -222,10 +241,36 @@ func (c *CostCollector) Collect(ch chan<- prometheus.Metric) {
 		costs[key] = existing
 	}
 
-	// Export aggregated cost metrics
+	// Export aggregated cost metrics (TODAY ONLY)
 	for _, data := range costs {
 		ch <- prometheus.MustNewConstMetric(
 			c.costMetric,
+			prometheus.GaugeValue,
+			data.cost,
+			data.labelValues...,
+		)
+	}
+
+	// Export completed daily cost metrics (HISTORICAL with date label)
+	completedCosts := make(map[labelKey]struct {
+		labelValues []string
+		cost        float64
+	})
+
+	for _, record := range c.completedDayRecords {
+		// Extract label values including 'date'
+		labelValues := extractLabelValues(record, c.completedCostMetricLabels)
+		key := labelKey(strings.Join(labelValues, "|"))
+
+		existing := completedCosts[key]
+		existing.labelValues = labelValues
+		existing.cost += record.Cost
+		completedCosts[key] = existing
+	}
+
+	for _, data := range completedCosts {
+		ch <- prometheus.MustNewConstMetric(
+			c.completedDailyCostMetric,
 			prometheus.GaugeValue,
 			data.cost,
 			data.labelValues...,
@@ -329,7 +374,6 @@ func (c *CostCollector) refresh(ctx context.Context) {
 	c.lastScrape = c.clock.Now()
 	c.lastScrapeDuration = duration
 	c.lastError = err
-	c.lastRecords = records
 
 	if err != nil {
 		c.scrapeErrorsTotal.With(prometheus.Labels{"provider": string(providerName)}).Inc()
@@ -338,10 +382,37 @@ func (c *CostCollector) refresh(ctx context.Context) {
 		return
 	}
 
+	// Split records into today (live) and yesterday (completed)
+	today := c.clock.Now().Format("2006-01-02")
+	yesterday := c.clock.Now().AddDate(0, 0, -1).Format("2006-01-02")
+
+	var todayRecords []provider.CostRecord
+	var yesterdayRecords []provider.CostRecord
+
+	for _, record := range records {
+		if record.Date == today {
+			todayRecords = append(todayRecords, record)
+		} else if record.Date == yesterday {
+			yesterdayRecords = append(yesterdayRecords, record)
+		}
+	}
+
+	c.lastRecords = todayRecords
+
+	// Update completed day records only once per day when day changes
+	if c.lastCompletedDay != today && len(yesterdayRecords) > 0 {
+		c.completedDayRecords = yesterdayRecords
+		c.lastCompletedDay = today
+		c.logger.Info("Updated completed day data",
+			"date", yesterday,
+			"record_count", len(yesterdayRecords))
+	}
+
 	c.isReady = true
 	c.logger.Info("Successfully refreshed cost records",
 		"provider", providerName,
-		"record_count", len(records),
+		"today_records", len(todayRecords),
+		"yesterday_records", len(yesterdayRecords),
 		"duration_seconds", duration.Seconds())
 }
 

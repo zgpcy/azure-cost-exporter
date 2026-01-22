@@ -18,9 +18,9 @@ const (
 
 	// Default values
 	DefaultCurrency        = "€"
-	DefaultEndDateOffset   = 0    // Query today's data (time-series model)
-	DefaultDaysToQuery     = 1    // Query only today (time-series model)
-	DefaultRefreshInterval = 3600 // 1 hour in seconds
+	DefaultEndDateOffset   = 0    // Query from today (two-metric model)
+	DefaultDaysToQuery     = 2    // Query today + yesterday (two-metric model)
+	DefaultRefreshInterval = 1800 // 30 minutes in seconds (user requested 30min for live data)
 	DefaultHTTPPort        = 8080
 	DefaultLogLevel        = "info"
 	DefaultAPITimeout      = 30 // API timeout in seconds

@@ -1,0 +1,46 @@
+subscriptions:
+  - id: "31193c31-7631-4120-990b-dfb31478f7da"
+    name: "vcluster"
+  - name: support
+    id: "ebe45cd7-3c4e-4268-afbd-52d1fa4b2470"
+  # Add more subscriptions here as needed
+  # - id: "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+  #   name: "development"
+
+# Currency symbol for cost display (default: €)
+currency: "€"
+
+# Date range configuration
+date_range:
+  end_date_offset: 0 # Days before today (0 = today - required for dual-metric model)
+  days_to_query: 2 # Query today + yesterday (2 days - required for dual-metric model)
+
+# Exporter settings
+refresh_interval: 1800 # How often to refresh cost data from Azure (in seconds, 1800 = 30 minutes for live updates)
+http_port: 8080 # HTTP server port for /metrics endpoint
+log_level: "debug" # Log level: debug, info, warn, error
+
+group_by:
+  enabled: true
+  groups:
+    - type: Dimension
+      name: ResourceType
+      label_name: resource_type
+    - type: Dimension
+      name: ResourceGroup
+      label_name: resource_group
+    - type: Dimension
+      name: ResourceLocation
+      label_name: resource_location
+    - type: Dimension
+      name: ResourceId
+      label_name: resource_id
+    - type: Dimension
+      name: MeterCategory
+      label_name: meter_category
+    # - type: Dimension
+    #   name: ChargeType
+    #   label_name: charge_type
+    - type: Dimension
+      name: PricingModel
+      label_name: pricing_model

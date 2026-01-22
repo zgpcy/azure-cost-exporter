@@ -91,8 +91,8 @@ subscriptions:
 	}{
 		{"Currency", cfg.Currency, "€", "default currency"},
 		{"EndDateOffset", *cfg.DateRange.EndDateOffset, 0, "default end date offset"},
-		{"DaysToQuery", cfg.DateRange.DaysToQuery, 1, "default days to query"},
-		{"RefreshInterval", cfg.RefreshInterval, 3600, "default refresh interval"},
+		{"DaysToQuery", cfg.DateRange.DaysToQuery, 2, "default days to query"},
+		{"RefreshInterval", cfg.RefreshInterval, 1800, "default refresh interval"},
 		{"HTTPPort", cfg.HTTPPort, 8080, "default HTTP port"},
 		{"LogLevel", cfg.LogLevel, "info", "default log level"},
 	}
