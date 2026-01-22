@@ -382,37 +382,37 @@ func (c *CostCollector) refresh(ctx context.Context) {
 		return
 	}
 
-	// Split records into today (live) and yesterday (completed)
+	// Split records into today (live) and historical (completed)
 	today := c.clock.Now().Format("2006-01-02")
-	yesterday := c.clock.Now().AddDate(0, 0, -1).Format("2006-01-02")
 
 	var todayRecords []provider.CostRecord
-	var yesterdayRecords []provider.CostRecord
+	var historicalRecords []provider.CostRecord
 
 	for _, record := range records {
 		if record.Date == today {
 			todayRecords = append(todayRecords, record)
-		} else if record.Date == yesterday {
-			yesterdayRecords = append(yesterdayRecords, record)
+		} else {
+			// All non-today records are historical (completed days)
+			historicalRecords = append(historicalRecords, record)
 		}
 	}
 
 	c.lastRecords = todayRecords
 
 	// Update completed day records only once per day when day changes
-	if c.lastCompletedDay != today && len(yesterdayRecords) > 0 {
-		c.completedDayRecords = yesterdayRecords
+	// This ensures we export all historical data, not just yesterday
+	if c.lastCompletedDay != today && len(historicalRecords) > 0 {
+		c.completedDayRecords = historicalRecords
 		c.lastCompletedDay = today
 		c.logger.Info("Updated completed day data",
-			"date", yesterday,
-			"record_count", len(yesterdayRecords))
+			"record_count", len(historicalRecords))
 	}
 
 	c.isReady = true
 	c.logger.Info("Successfully refreshed cost records",
 		"provider", providerName,
 		"today_records", len(todayRecords),
-		"yesterday_records", len(yesterdayRecords),
+		"historical_records", len(historicalRecords),
 		"duration_seconds", duration.Seconds())
 }
 
